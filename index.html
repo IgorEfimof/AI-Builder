@@ -521,10 +521,10 @@
         <div class="preview-panel" id="previewPanel">
             <button class="mobile-back-btn" onclick="hidePreview()">← Назад к чату</button>
             <div class="preview-tabs">
-                <button class="preview-tab active" onclick="switchTab('preview', this)">👁 Предпросмотр</button>
-                <button class="preview-tab" onclick="switchTab('code', this)">💻 Код</button>
-                <button class="preview-tab" onclick="copyCode()">📋 Копировать</button>
-                <button class="preview-tab" onclick="downloadCode()">⬇️ Скачать</button>
+                <button class="preview-tab active" data-tab="preview" onclick="switchTab('preview', this)">👁 Предпросмотр</button>
+                <button class="preview-tab" data-tab="code" onclick="switchTab('code', this)">💻 Код</button>
+                <button class="preview-tab" onclick="copyCode(event)">📋 Копировать</button>
+                <button class="preview-tab" onclick="downloadCode(event)">⬇️ Скачать</button>
             </div>
             <div class="preview-content">
                 <div class="preview-empty" id="previewEmpty">
@@ -532,7 +532,7 @@
                     <div class="preview-empty-title">Здесь появится ваше приложение</div>
                     <div class="preview-empty-sub">Опишите приложение в чате или загрузите скриншот — AI сгенерирует готовый HTML/CSS/JS код</div>
                 </div>
-                <iframe class="preview-frame" id="previewFrame" sandbox="allow-scripts allow-same-origin" style="display:none;"></iframe>
+                <iframe class="preview-frame" id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups" style="display:none;"></iframe>
                 <div class="code-view" id="codeView"></div>
             </div>
         </div>
@@ -647,6 +647,116 @@
             }, duration);
         }
 
+        // ===== UTILS =====
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        // ===== MESSAGE HELPERS =====
+        function addMessage(role, text, extraClass = '') {
+            const msgEl = document.createElement('div');
+            msgEl.className = `message ${role}` + (extraClass ? ` ${extraClass}` : '');
+            msgEl.innerHTML = text;
+            chatMessages.appendChild(msgEl);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return msgEl;
+        }
+
+        function addTypingIndicator() {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message ai';
+            msgEl.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+            chatMessages.appendChild(msgEl);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return msgEl;
+        }
+
+        // ===== PREVIEW PANEL =====
+        function switchTab(tab, btn) {
+            // Активная вкладка — только для preview/code
+            document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
+            if (btn && btn.dataset.tab) btn.classList.add('active');
+
+            if (tab === 'preview') {
+                if (currentCode) {
+                    previewFrame.style.display = 'block';
+                    previewEmpty.style.display = 'none';
+                } else {
+                    previewFrame.style.display = 'none';
+                    previewEmpty.style.display = 'flex';
+                }
+                codeView.style.display = 'none';
+            } else if (tab === 'code') {
+                previewFrame.style.display = 'none';
+                previewEmpty.style.display = 'none';
+                codeView.style.display = 'block';
+                codeView.textContent = currentCode || '// Пока нет сгенерированного кода';
+            }
+        }
+
+        function showPreview() {
+            if (window.innerWidth <= 768) {
+                previewPanel.classList.add('mobile-show');
+            }
+        }
+
+        function hidePreview() {
+            previewPanel.classList.remove('mobile-show');
+        }
+
+        function copyCode(event) {
+            if (event) event.preventDefault();
+            if (!currentCode) {
+                showToast('Нет кода для копирования', 'info');
+                return;
+            }
+            const doFallback = () => {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = currentCode;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast('Код скопирован!', 'success');
+                } catch (e) {
+                    showToast('Не удалось скопировать', 'error');
+                }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(currentCode)
+                    .then(() => showToast('Код скопирован!', 'success'))
+                    .catch(doFallback);
+            } else {
+                doFallback();
+            }
+        }
+
+        function downloadCode(event) {
+            if (event) event.preventDefault();
+            if (!currentCode) {
+                showToast('Нет кода для скачивания', 'info');
+                return;
+            }
+            try {
+                const blob = new Blob([currentCode], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ai-builder-${Date.now()}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                showToast('Файл скачан', 'success');
+            } catch (e) {
+                showToast('Ошибка скачивания', 'error');
+            }
+        }
+
         // ===== API KEY =====
         function showApiKeyModal() {
             apiKeyInput.value = localStorage.getItem('api_key') || '';
@@ -693,12 +803,10 @@
 
         function persistSavedChats() {
             try {
-                // Ограничение размера — оставляем только последние 50
                 if (savedChats.length > 50) savedChats = savedChats.slice(-50);
                 localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats));
             } catch (e) {
                 if (e.name === 'QuotaExceededError') {
-                    // Чистим старые
                     savedChats = savedChats.slice(-20);
                     try { localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats)); } catch {}
                     showToast('Хранилище переполнено, удалены старые чаты', 'error');
@@ -720,7 +828,6 @@
         function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
         function generateTitle(messages) {
-            // Первое сообщение пользователя — заголовок
             const first = messages.find(m => m.role === 'user');
             if (first) {
                 let text = typeof first.content === 'string' ? first.content : '';
@@ -791,15 +898,16 @@
                             if (att.type === 'image') {
                                 chip.innerHTML = `<img src="${att.url}" alt=""> <span>Изображение</span>`;
                             } else {
-                                chip.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span>${att.name}</span>`;
+                                chip.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span>${escapeHtml(att.name)}</span>`;
                             }
                             attDiv.appendChild(chip);
                         });
                         msgEl.appendChild(attDiv);
                     }
                 } else if (msg.role === 'assistant') {
-                    let text = typeof msg.content === 'string' ? msg.content : '';
-                    addMessage('ai', '✅ Готово! Код сгенерирован.');
+                    // Восстанавливаем ассистентское сообщение корректно
+                    const hasCode = typeof msg.content === 'string' && msg.content.includes('<!DOCTYPE html');
+                    addMessage('ai', hasCode ? '✅ Готово! Код сгенерирован.' : escapeHtml(String(msg.content || '')));
                 }
             });
 
@@ -809,10 +917,18 @@
                 previewFrame.style.display = 'block';
                 previewEmpty.style.display = 'none';
                 codeView.textContent = chat.code;
+            } else {
+                currentCode = '';
+                previewFrame.srcdoc = '';
+                previewFrame.style.display = 'none';
+                previewEmpty.style.display = 'flex';
+                codeView.textContent = '';
             }
 
             renderSidebar();
-            if (window.innerWidth <= 768) toggleSidebar();
+            if (window.innerWidth <= 768) {
+                if (sidebar.classList.contains('mobile-show')) toggleSidebar();
+            }
             showToast('Чат загружен', 'success');
         }
 
@@ -827,6 +943,8 @@
                     newChat(true);
                 }
                 persistSavedChats();
+                // Обновляем модалку истории, если открыта
+                if (historyModal.classList.contains('show')) showHistoryModal();
                 showToast('Чат удалён', 'success');
             });
         }
@@ -844,7 +962,9 @@
             renderAttachmentsPreview();
             addMessage('ai', '🆕 Новый чат. Опишите приложение или загрузите файлы.');
             renderSidebar();
-            if (!silent && window.innerWidth <= 768) toggleSidebar();
+            if (!silent && window.innerWidth <= 768) {
+                if (sidebar.classList.contains('mobile-show')) toggleSidebar();
+            }
         }
 
         function renderSidebar() {
@@ -1080,6 +1200,7 @@
 
             const model = document.getElementById('modelSelect').value;
             const hasImages = pendingAttachments.some(a => a.type === 'image');
+            const hasFiles = pendingAttachments.some(a => a.type === 'file');
 
             // Формируем пользовательское сообщение
             let userContent;
@@ -1108,7 +1229,7 @@
             }
 
             // Отображаем сообщение
-            const msgEl = addMessage('user', prompt || (pendingAttachments.length > 0 ? '(только вложения)' : ''));
+            const msgEl = addMessage('user', escapeHtml(prompt || (pendingAttachments.length > 0 ? '(только вложения)' : '')));
             if (attachmentsForDisplay.length > 0) {
                 const attDiv = document.createElement('div');
                 attDiv.className = 'message-attachments';
@@ -1118,7 +1239,7 @@
                     if (att.type === 'image') {
                         chip.innerHTML = `<img src="${att.url}" alt=""> <span>Изображение</span>`;
                     } else {
-                        chip.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span>${att.name}</span>`;
+                        chip.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span>${escapeHtml(att.name)}</span>`;
                     }
                     attDiv.appendChild(chip);
                 });
@@ -1132,23 +1253,19 @@
             const typingMsg = addTypingIndicator();
 
             try {
-                // Системный промпт зависит от типа запроса
                 let systemPrompt;
                 if (hasImages) {
                     systemPrompt = 'Ты эксперт по веб-разработке и UI/UX дизайнеру. Тебе показали скриншот/фото веб-сайта или дизайна. Проанализируй его внимательно: цвета, типографику, расположение элементов, стиль, анимации. Создай полноценное HTML-приложение (HTML+CSS+JS в одном файле), которое МАКСИМАЛЬНО точно воспроизводит этот дизайн. Используй современные техники CSS (flexbox, grid, animations). Добавляй интерактивность. Возвращай ТОЛЬКО код от <!DOCTYPE html> до </html>. Никаких пояснений, markdown-блоков или комментариев снаружи.';
-                } else if (pendingAttachments.some(a => a.type === 'file')) {
+                } else if (hasFiles) {
                     systemPrompt = 'Ты эксперт по веб-разработке. Пользователь предоставил тебе исходные файлы проекта (код, конфигурации). Проанализируй их внимательно, пойми структуру, стиль, используемые технологии. На основе запроса пользователя либо улучши код, либо доработай его, либо создай новое приложение в том же стиле. Возвращай ТОЛЬКО готовый HTML-код от <!DOCTYPE html> до </html>. Никаких пояснений, markdown-блоков или комментариев снаружи.';
                 } else {
                     systemPrompt = 'Ты эксперт по веб-разработке. Создавай полноценные красивые HTML-приложения с современным дизайном, адаптивной вёрсткой и плавными анимациями. Используй flexbox/grid, CSS-переменные, красивые цветовые схемы. Добавляй интерактивность через JavaScript. Возвращай ТОЛЬКО код от <!DOCTYPE html> до </html>. Никаких пояснений, markdown-блоков или комментариев снаружи.';
                 }
 
-                // Собираем историю (только текстовые user/assistant, без system)
                 const messages = [{ role: 'system', content: systemPrompt }];
                 
-                // Добавляем предыдущие сообщения из истории (только чистые)
                 chatHistory.slice(-10).forEach(msg => {
                     if (msg.role === 'user') {
-                        // Для истории упрощаем до текста
                         let text = '';
                         if (typeof msg.content === 'string') text = msg.content;
                         else if (Array.isArray(msg.content)) {
@@ -1165,7 +1282,6 @@
                     }
                 });
 
-                // Добавляем текущее сообщение
                 messages.push({ role: 'user', content: userContent });
 
                 const response = await fetch(API_URL, {
@@ -1212,7 +1328,6 @@
                     setTimeout(() => showPreview(), 300);
                 }
 
-                // Автосохранение
                 if (currentChatId) {
                     const chat = savedChats.find(c => c.id === currentChatId);
                     if (chat) {
@@ -1226,14 +1341,18 @@
 
             } catch (error) {
                 typingMsg.remove();
-                addMessage('ai', `❌ Ошибка: ${error.message}`, 'error');
+                addMessage('ai', `❌ Ошибка: ${escapeHtml(error.message)}`, 'error');
             } finally {
                 isGenerating = false;
                 sendBtn.disabled = false;
             }
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHT
+        // ===== INIT =====
+        loadSavedChats();
+        if (window.innerWidth > 768) {
+            // на десктопе preview-панель всегда видна (CSS)
+        }
+    </script>
+</body>
+</html>
