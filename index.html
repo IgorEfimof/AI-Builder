@@ -45,6 +45,7 @@
             overflow: hidden; height: 100vh; height: 100dvh;
         }
 
+        /* HEADER */
         .header {
             background: var(--bg-secondary); border-bottom: 1px solid var(--border);
             padding: calc(var(--safe-top) + 10px) 12px 10px;
@@ -85,12 +86,14 @@
 
         .main-container {
             display: flex; height: calc(100vh - 55px); height: calc(100dvh - 55px);
+            position: relative;
         }
         
         /* SIDEBAR */
         .sidebar {
             width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border);
             display: flex; flex-direction: column; transition: transform 0.3s ease;
+            z-index: 200;
         }
         .sidebar-header {
             padding: 14px 12px; border-bottom: 1px solid var(--border);
@@ -105,9 +108,7 @@
         .new-chat-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
         .new-chat-btn svg { width: 14px; height: 14px; }
 
-        .sidebar-list {
-            flex: 1; overflow-y: auto; padding: 8px;
-        }
+        .sidebar-list { flex: 1; overflow-y: auto; padding: 8px; }
         .sidebar-list::-webkit-scrollbar { width: 6px; }
         .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
@@ -239,6 +240,7 @@
         .preview-panel {
             flex: 1; display: flex; flex-direction: column; background: var(--bg-primary);
             border-left: 1px solid var(--border);
+            position: relative;
         }
         .preview-tabs {
             display: flex; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
@@ -267,7 +269,13 @@
         .preview-empty-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
         .preview-empty-sub { font-size: 13px; max-width: 300px; line-height: 1.5; }
 
-        /* MOBILE BACK BUTTON */
+        /* OVERLAYS & MOBILE */
+        .sidebar-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 199; backdrop-filter: blur(2px);
+        }
+        .sidebar-overlay.show { display: block; }
+
         .mobile-back-btn {
             display: none; position: absolute; top: calc(var(--safe-top) + 10px); left: 12px;
             z-index: 10; background: var(--bg-secondary); color: var(--text-primary);
@@ -371,34 +379,39 @@
         .toast.info { border-left: 4px solid var(--accent); }
         .toast-icon { font-size: 16px; }
 
-        /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
+        /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ (ВАЖНО) ===== */
         @media (max-width: 768px) {
-            .main-container { flex-direction: column; }
+            .main-container { flex-direction: column; height: calc(100dvh - 55px); }
             
+            /* Сайдбар скрыт по умолчанию, выезжает слева */
             .sidebar {
                 position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
                 transform: translateX(-100%); width: 85%; max-width: 320px;
                 box-shadow: 4px 0 24px var(--shadow);
+                height: 100dvh;
             }
             .sidebar.mobile-show { transform: translateX(0); }
-            .sidebar-overlay {
-                display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.5); z-index: 199;
+            
+            /* Панель чата всегда на всю ширину */
+            .chat-panel { 
+                max-width: 100%; border-right: none; border-bottom: none; width: 100%;
+                height: 100%;
             }
-            .sidebar-overlay.show { display: block; }
             
-            .chat-panel { max-width: 100%; border-right: none; border-bottom: none; width: 100%; }
-            
+            /* Панель предпросмотра выезжает снизу ПОВЕРХ чата */
             .preview-panel {
                 display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                z-index: 50; width: 100%; height: 100vh; height: 100dvh; background: var(--bg-primary);
+                z-index: 150; width: 100%; height: 100dvh; background: var(--bg-primary);
             }
-            .preview-panel.mobile-show { display: flex; animation: slideUp 0.3s ease; }
+            .preview-panel.mobile-show { 
+                display: flex; 
+                animation: slideUp 0.3s ease; 
+            }
             @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
             
             .mobile-back-btn { display: block; }
             .mobile-menu-btn { display: flex; }
-            .chat-input { font-size: 16px; }
+            .chat-input { font-size: 16px; } /* Предотвращает зум на iOS */
             .message { font-size: 15px; padding: 12px 16px; }
             .header { padding: calc(var(--safe-top) + 8px) 10px 8px; }
             .logo { font-size: 15px; }
@@ -412,9 +425,10 @@
             .mobile-back-btn { display: none !important; }
             .mobile-menu-btn { display: none !important; }
             .sidebar-overlay { display: none !important; }
+            /* На десктопе панель предпросмотра видна всегда */
+            .preview-panel { display: flex !important; position: relative; }
         }
 
-        /* Hidden file inputs */
         .file-input-hidden { display: none; }
     </style>
 </head>
@@ -422,7 +436,7 @@
 
     <header class="header">
         <div style="display: flex; align-items: center; gap: 8px;">
-            <button class="mobile-menu-btn" onclick="toggleSidebar()">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" title="История">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
             <div class="logo">
@@ -455,6 +469,7 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <div class="main-container">
+        <!-- БЛОК ИСТОРИИ -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <span class="sidebar-title">История</span>
@@ -471,6 +486,7 @@
             </div>
         </aside>
 
+        <!-- БЛОК ЧАТА -->
         <div class="chat-panel">
             <div class="chat-messages" id="chatMessages">
                 <div class="message ai">
@@ -518,6 +534,7 @@
             </div>
         </div>
 
+        <!-- БЛОК ПРЕДПРОСМОТРА -->
         <div class="preview-panel" id="previewPanel">
             <button class="mobile-back-btn" onclick="hidePreview()">← Назад к чату</button>
             <div class="preview-tabs">
@@ -538,6 +555,7 @@
         </div>
     </div>
 
+    <!-- ОВЕРЛЕЙ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ -->
     <div class="drop-zone" id="dropZone">
         <div class="drop-zone-content">
             <div class="drop-zone-icon">📂</div>
@@ -548,7 +566,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- API KEY MODAL -->
+    <!-- МОДАЛКА API -->
     <div class="modal" id="apiKeyModal">
         <div class="modal-content">
             <div class="modal-title">🔑 API Key</div>
@@ -562,7 +580,7 @@
         </div>
     </div>
 
-    <!-- HISTORY MODAL -->
+    <!-- МОДАЛКА ИСТОРИИ -->
     <div class="modal" id="historyModal">
         <div class="modal-content">
             <div class="modal-title">📚 История чатов</div>
@@ -572,7 +590,7 @@
         </div>
     </div>
 
-    <!-- CONFIRM MODAL -->
+    <!-- МОДАЛКА ПОДТВЕРЖДЕНИЯ -->
     <div class="modal" id="confirmModal">
         <div class="modal-content confirm-dialog">
             <div class="modal-title" id="confirmTitle">⚠️ Подтверждение</div>
@@ -589,8 +607,8 @@
         let chatHistory = [];
         let currentCode = '';
         let isGenerating = false;
-        let pendingAttachments = []; // { type: 'file'|'image', name, content (base64 or text) }
-        let savedChats = []; // { id, title, messages, code, createdAt }
+        let pendingAttachments = []; 
+        let savedChats = []; 
         let currentChatId = null;
         let confirmCallback = null;
 
@@ -616,7 +634,7 @@
         const toastContainer = document.getElementById('toastContainer');
         const confirmModal = document.getElementById('confirmModal');
 
-        // ===== THEMES =====
+        // ===== ТЕМЫ =====
         document.querySelectorAll('.theme-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const theme = btn.dataset.theme;
@@ -634,7 +652,7 @@
             savedBtn.classList.add('active');
         }
 
-        // ===== TOAST NOTIFICATIONS =====
+        // ===== УВЕДОМЛЕНИЯ =====
         function showToast(message, type = 'info', duration = 3000) {
             const icons = { success: '✅', error: '❌', info: 'ℹ️' };
             const toast = document.createElement('div');
@@ -647,7 +665,7 @@
             }, duration);
         }
 
-        // ===== UTILS =====
+        // ===== УТИЛИТЫ =====
         function escapeHtml(text) {
             if (text === null || text === undefined) return '';
             const div = document.createElement('div');
@@ -655,7 +673,6 @@
             return div.innerHTML;
         }
 
-        // ===== MESSAGE HELPERS =====
         function addMessage(role, text, extraClass = '') {
             const msgEl = document.createElement('div');
             msgEl.className = `message ${role}` + (extraClass ? ` ${extraClass}` : '');
@@ -674,9 +691,8 @@
             return msgEl;
         }
 
-        // ===== PREVIEW PANEL =====
+        // ===== ПАНЕЛЬ ПРЕДПРОСМОТРА =====
         function switchTab(tab, btn) {
-            // Активная вкладка — только для preview/code
             document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
             if (btn && btn.dataset.tab) btn.classList.add('active');
 
@@ -757,7 +773,7 @@
             }
         }
 
-        // ===== API KEY =====
+        // ===== API КЛЮЧ =====
         function showApiKeyModal() {
             apiKeyInput.value = localStorage.getItem('api_key') || '';
             apiKeyModal.classList.add('show');
@@ -792,7 +808,7 @@
             }
         }
 
-        // ===== SAVED CHATS STORAGE =====
+        // ===== ХРАНИЛИЩЕ ЧАТОВ =====
         function loadSavedChats() {
             try {
                 savedChats = JSON.parse(localStorage.getItem('ai_builder_chats') || '[]');
@@ -905,7 +921,6 @@
                         msgEl.appendChild(attDiv);
                     }
                 } else if (msg.role === 'assistant') {
-                    // Восстанавливаем ассистентское сообщение корректно
                     const hasCode = typeof msg.content === 'string' && msg.content.includes('<!DOCTYPE html');
                     addMessage('ai', hasCode ? '✅ Готово! Код сгенерирован.' : escapeHtml(String(msg.content || '')));
                 }
@@ -926,6 +941,7 @@
             }
 
             renderSidebar();
+            // СКРЫВАЕМ ИСТОРИЮ ПРИ ЗАГРУЗКЕ ЧАТА НА МОБИЛЬНОМ
             if (window.innerWidth <= 768) {
                 if (sidebar.classList.contains('mobile-show')) toggleSidebar();
             }
@@ -943,7 +959,6 @@
                     newChat(true);
                 }
                 persistSavedChats();
-                // Обновляем модалку истории, если открыта
                 if (historyModal.classList.contains('show')) showHistoryModal();
                 showToast('Чат удалён', 'success');
             });
@@ -965,6 +980,8 @@
             if (!silent && window.innerWidth <= 768) {
                 if (sidebar.classList.contains('mobile-show')) toggleSidebar();
             }
+            // Скрываем предпросмотр на мобильном при создании нового чата
+            hidePreview();
         }
 
         function renderSidebar() {
@@ -1044,7 +1061,7 @@
 
         historyModal.addEventListener('click', e => { if (e.target === historyModal) historyModal.classList.remove('show'); });
 
-        // ===== CONFIRM DIALOG =====
+        // ===== ПОДТВЕРЖДЕНИЕ =====
         function showConfirm(text, callback) {
             document.getElementById('confirmText').textContent = text;
             confirmCallback = callback;
@@ -1060,13 +1077,13 @@
         }
         confirmModal.addEventListener('click', e => { if (e.target === confirmModal) closeConfirm(); });
 
-        // ===== SIDEBAR TOGGLE =====
+        // ===== САЙДБАР =====
         function toggleSidebar() {
             sidebar.classList.toggle('mobile-show');
             sidebarOverlay.classList.toggle('show');
         }
 
-        // ===== FILE HANDLING =====
+        // ===== ФАЙЛЫ =====
         fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files), 'file'));
         imageInput.addEventListener('change', e => handleFiles(Array.from(e.target.files), 'image'));
 
@@ -1182,7 +1199,7 @@
             if (textFiles.length) await handleFiles(textFiles, 'file');
         });
 
-        // ===== CHAT INPUT =====
+        // ===== ВВОД =====
         chatInput.addEventListener('input', () => {
             chatInput.style.height = 'auto';
             chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
@@ -1191,7 +1208,7 @@
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
         });
 
-        // ===== SEND MESSAGE =====
+        // ===== ОТПРАВКА СООБЩЕНИЯ =====
         async function sendMessage() {
             const prompt = chatInput.value.trim();
             if ((!prompt && pendingAttachments.length === 0) || isGenerating) return;
@@ -1202,7 +1219,6 @@
             const hasImages = pendingAttachments.some(a => a.type === 'image');
             const hasFiles = pendingAttachments.some(a => a.type === 'file');
 
-            // Формируем пользовательское сообщение
             let userContent;
             const attachmentsForDisplay = [];
 
@@ -1228,7 +1244,6 @@
                 });
             }
 
-            // Отображаем сообщение
             const msgEl = addMessage('user', escapeHtml(prompt || (pendingAttachments.length > 0 ? '(только вложения)' : '')));
             if (attachmentsForDisplay.length > 0) {
                 const attDiv = document.createElement('div');
@@ -1324,6 +1339,7 @@
                 previewEmpty.style.display = 'none';
                 codeView.textContent = rawCode;
 
+                // НА МОБИЛЬНОМ АВТОМАТИЧЕСКИ ОТКРЫВАЕМ ПРЕДПРОСМОТР
                 if (window.innerWidth <= 768) {
                     setTimeout(() => showPreview(), 300);
                 }
@@ -1348,10 +1364,12 @@
             }
         }
 
-        // ===== INIT =====
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
         loadSavedChats();
-        if (window.innerWidth > 768) {
-            // на десктопе preview-панель всегда видна (CSS)
+        
+        // Закрываем предпросмотр на мобильном при старте
+        if (window.innerWidth <= 768) {
+            hidePreview();
         }
     </script>
 </body>
