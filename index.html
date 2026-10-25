@@ -481,6 +481,12 @@
             </div>
         </div>
         <div class="header-actions">
+            <!-- НОВАЯ КНОПКА ПРЕДПРОСМОТРА -->
+            <div class="icon-btn-wrapper">
+                <button class="icon-btn" onclick="showPreview()" title="Предпросмотр" style="color: var(--accent); border-color: var(--accent);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
             <div class="icon-btn-wrapper">
                 <button class="icon-btn" onclick="showLimitModal()" title="Лимиты">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -814,6 +820,10 @@
         }
 
         function showPreview() {
+            if (!currentCode) {
+                showToast('Сначала сгенерируйте код', 'info');
+                return;
+            }
             if (window.innerWidth <= 768) {
                 previewPanel.classList.add('mobile-show');
             }
@@ -1656,9 +1666,12 @@
                 }
                 const data = await response.json();
                 let rawCode = data.choices[0].message.content || '';
-                rawCode = rawCode.replace(/^```html\n?/i, '').replace(/^```\n?/i, '').replace(/```$/i, '').trim();
-
-                if (!rawCode.includes('<!DOCTYPE html') && !rawCode.includes('<html')) {
+                
+                // Улучшенная очистка кода
+                rawCode = rawCode.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+                
+                // Проверка на наличие кода
+                if (!rawCode.includes('<!DOCTYPE html') && !rawCode.includes('<html') && !rawCode.includes('<body') && !rawCode.includes('<div')) {
                     throw new Error('Модель не вернула HTML-код. Попробуйте переформулировать запрос или сменить модель.');
                 }
 
