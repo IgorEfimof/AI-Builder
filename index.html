@@ -160,6 +160,7 @@
         .message.ai { align-self: flex-start; background: var(--chat-ai); color: var(--text-primary); border-bottom-left-radius: 4px; }
         .message.error { background: var(--danger); color: white; }
         .message.success { background: var(--success); color: white; }
+        .message.raw-text { background: var(--warning); color: #000; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
 
         .message-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
         .attachment-chip {
@@ -481,7 +482,7 @@
             </div>
         </div>
         <div class="header-actions">
-            <!-- НОВАЯ КНОПКА ПРЕДПРОСМОТРА -->
+            <!-- КНОПКА ПРЕДПРОСМОТРА -->
             <div class="icon-btn-wrapper">
                 <button class="icon-btn" onclick="showPreview()" title="Предпросмотр" style="color: var(--accent); border-color: var(--accent);">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -609,7 +610,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- МОДАЛКА API (ОБНОВЛЕНА) -->
+    <!-- МОДАЛКА API -->
     <div class="modal" id="apiKeyModal">
         <div class="modal-content">
             <div class="modal-title">🔑 API Ключи</div>
@@ -716,6 +717,8 @@
         let confirmCallback = null;
         let cachedKeyInfo = null;
         let currentProvider = 'openrouter';
+        let lastUserPrompt = ''; // Для кнопки "Повторить"
+        let lastUserContent = null;
 
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
@@ -961,7 +964,6 @@
             btn.textContent = '⏳ Проверяю...'; btn.disabled = true;
             
             try {
-                // Если провайдер Ollama, используем наш Worker
                 const url = provider === 'ollama' 
                     ? `${CLOUDFLARE_WORKER_URL}/?url=https://ollama.com/v1/chat/completions`
                     : OPENROUTER_API_URL;
@@ -1538,7 +1540,6 @@
             const hasFiles = pendingAttachments.some(a => a.type === 'file');
             const isFreeModel = currentProvider === 'openrouter' && (model.includes(':free') || model === 'openrouter/free');
 
-            // Проверяем бесплатный лимит перед отправкой (только OpenRouter)
             if (isFreeModel) {
                 const used = getFreeRequestsToday();
                 let limit = 50;
@@ -1575,6 +1576,10 @@
                     }
                 });
             }
+
+            // СОХРАНЯЕМ ДЛЯ ПОВТОРА
+            lastUserPrompt = prompt;
+            lastUserContent = userContent;
 
             const msgEl = addMessage('user', escapeHtml(prompt || (pendingAttachments.length > 0 ? '(только вложения)' : '')));
             if (attachmentsForDisplay.length > 0) {
@@ -1631,7 +1636,6 @@
 
                 messages.push({ role: 'user', content: userContent });
 
-                // Используем Worker для Ollama, иначе прямой OpenRouter
                 const apiUrl = currentProvider === 'ollama' 
                     ? `${CLOUDFLARE_WORKER_URL}/?url=https://ollama.com/v1/chat/completions`
                     : OPENROUTER_API_URL;
@@ -1664,15 +1668,27 @@
                     
                     throw new Error(`HTTP ${response.status}: ${errorMessage}`);
                 }
+                
                 const data = await response.json();
-                let rawCode = data.choices[0].message.content || '';
+                let rawText = data.choices[0].message.content || '';
+                let rawCode = rawText.trim();
                 
-                // Улучшенная очистка кода
-                rawCode = rawCode.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
-                
-                // Проверка на наличие кода
-                if (!rawCode.includes('<!DOCTYPE html') && !rawCode.includes('<html') && !rawCode.includes('<body') && !rawCode.includes('<div')) {
-                    throw new Error('Модель не вернула HTML-код. Попробуйте переформулировать запрос или сменить модель.');
+                // УЛУЧШЕННЫЙ ПАРСЕР КОДА
+                // 1. Убираем markdown-обертки
+                const codeBlockRegex = /```(?:html|javascript|js|css)?\s*([\s\S]*?)```/i;
+                const match = rawCode.match(codeBlockRegex);
+                if (match && match[1]) {
+                    rawCode = match[1].trim();
+                } else {
+                    rawCode = rawCode.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+                }
+
+                // 2. Если модель выдала просто текст (не код) — выбрасываем ошибку с текстом
+                if (!rawCode.includes('<') || (!rawCode.includes('<!DOCTYPE html') && !rawCode.includes('<html') && !rawCode.includes('<body') && !rawCode.includes('<div'))) {
+                    // Показываем, что ответила модель
+                    const errMsgEl = addMessage('ai', `⚠️ Модель вернула не код, а текст:<br><br><div class="message raw-text">${escapeHtml(rawText.slice(0, 500))}</div><br><button class="modal-btn" style="width:auto; padding:8px 16px; margin-top:8px; font-size:13px;" onclick="retryLastPrompt()">🔄 Повторить запрос</button>`, 'raw-text');
+                    typingMsg.remove();
+                    throw new Error('Модель ответила текстом вместо кода.');
                 }
 
                 if (isFreeModel) {
@@ -1715,6 +1731,26 @@
             }
         }
 
+        // Функция для повтора последнего запроса
+        function retryLastPrompt() {
+            if (!lastUserContent) {
+                showToast('Нечего повторять', 'info');
+                return;
+            }
+            
+            // Восстанавливаем вложение и текст в поле ввода (или сразу отправляем)
+            if (typeof lastUserContent === 'string') {
+                chatInput.value = lastUserContent;
+            } else {
+                // Если были вложения, мы их потеряли при очистке, но можем отправить текстовую часть
+                const textPart = lastUserContent.find(p => p.type === 'text');
+                if (textPart) chatInput.value = textPart.text;
+                showToast('Вложения не сохранены для повтора. Отправьте текстовый запрос заново.', 'info', 4000);
+            }
+            chatInput.focus();
+            // Автоматически отправляем? Лучше дать пользователю нажать Enter
+        }
+
         // ===== ИНИЦИАЛИЗАЦИЯ =====
         loadSavedChats();
         
@@ -1722,12 +1758,10 @@
             hidePreview();
         }
 
-        // Восстанавливаем провайдера по умолчанию
         const savedProvider = localStorage.getItem('current_provider') || 'openrouter';
         currentProvider = savedProvider;
         updateModelList(savedProvider);
         
-        // Устанавливаем активный таб провайдера
         document.querySelectorAll('.provider-tab').forEach(tab => {
             if (tab.dataset.provider === savedProvider) {
                 tab.classList.add('active');
@@ -1743,7 +1777,6 @@
             }
         });
 
-        // Закрытие модалок по клику на фон
         [apiKeyModal, limitModal, historyModal, confirmModal].forEach(modal => {
             modal.addEventListener('click', e => {
                 if (e.target === modal) modal.classList.remove('show');
