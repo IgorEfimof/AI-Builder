@@ -379,11 +379,34 @@
         .toast.info { border-left: 4px solid var(--accent); }
         .toast-icon { font-size: 16px; }
 
+        /* LIMIT MODAL */
+        .limit-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: var(--bg-primary); border-radius: 10px;
+            margin-bottom: 8px; border: 1px solid var(--border);
+        }
+        .limit-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+        .limit-value { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+        .limit-bar-container {
+            width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px;
+            margin-top: 8px; overflow: hidden;
+        }
+        .limit-bar {
+            height: 100%; background: var(--success); border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .limit-bar.warning { background: var(--warning); }
+        .limit-bar.danger { background: var(--danger); }
+        .limit-reset-info {
+            font-size: 12px; color: var(--text-secondary); text-align: center;
+            margin-top: 16px; padding: 10px; background: var(--bg-tertiary);
+            border-radius: 8px; line-height: 1.4;
+        }
+
         /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ (ВАЖНО) ===== */
         @media (max-width: 768px) {
             .main-container { flex-direction: column; height: calc(100dvh - 55px); }
             
-            /* Сайдбар скрыт по умолчанию, выезжает слева */
             .sidebar {
                 position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
                 transform: translateX(-100%); width: 85%; max-width: 320px;
@@ -392,13 +415,11 @@
             }
             .sidebar.mobile-show { transform: translateX(0); }
             
-            /* Панель чата всегда на всю ширину */
             .chat-panel { 
                 max-width: 100%; border-right: none; border-bottom: none; width: 100%;
                 height: 100%;
             }
             
-            /* Панель предпросмотра выезжает снизу ПОВЕРХ чата */
             .preview-panel {
                 display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
                 z-index: 150; width: 100%; height: 100dvh; background: var(--bg-primary);
@@ -411,7 +432,7 @@
             
             .mobile-back-btn { display: block; }
             .mobile-menu-btn { display: flex; }
-            .chat-input { font-size: 16px; } /* Предотвращает зум на iOS */
+            .chat-input { font-size: 16px; }
             .message { font-size: 15px; padding: 12px 16px; }
             .header { padding: calc(var(--safe-top) + 8px) 10px 8px; }
             .logo { font-size: 15px; }
@@ -425,7 +446,6 @@
             .mobile-back-btn { display: none !important; }
             .mobile-menu-btn { display: none !important; }
             .sidebar-overlay { display: none !important; }
-            /* На десктопе панель предпросмотра видна всегда */
             .preview-panel { display: flex !important; position: relative; }
         }
 
@@ -445,6 +465,11 @@
             </div>
         </div>
         <div class="header-actions">
+            <div class="icon-btn-wrapper">
+                <button class="icon-btn" onclick="showLimitModal()" title="Лимиты">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </button>
+            </div>
             <div class="icon-btn-wrapper">
                 <button class="icon-btn" onclick="showHistoryModal()" title="История">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h5v5H3zM14 3h7v5h-7zM14 14h7v5h-7zM3 14h5v5H3z"/></svg>
@@ -469,7 +494,6 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <div class="main-container">
-        <!-- БЛОК ИСТОРИИ -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <span class="sidebar-title">История</span>
@@ -486,7 +510,6 @@
             </div>
         </aside>
 
-        <!-- БЛОК ЧАТА -->
         <div class="chat-panel">
             <div class="chat-messages" id="chatMessages">
                 <div class="message ai">
@@ -534,7 +557,6 @@
             </div>
         </div>
 
-        <!-- БЛОК ПРЕДПРОСМОТРА -->
         <div class="preview-panel" id="previewPanel">
             <button class="mobile-back-btn" onclick="hidePreview()">← Назад к чату</button>
             <div class="preview-tabs">
@@ -555,7 +577,6 @@
         </div>
     </div>
 
-    <!-- ОВЕРЛЕЙ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ -->
     <div class="drop-zone" id="dropZone">
         <div class="drop-zone-content">
             <div class="drop-zone-icon">📂</div>
@@ -577,6 +598,39 @@
             <input type="password" class="modal-input" id="apiKeyInput" placeholder="Введите ключ (sk-or-...)">
             <button class="modal-btn" onclick="saveApiKey()">💾 Сохранить</button>
             <button class="test-btn" onclick="testConnection()">🔍 Проверить связь</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ЛИМИТОВ -->
+    <div class="modal" id="limitModal">
+        <div class="modal-content">
+            <div class="modal-title">📊 Лимиты</div>
+            <div class="modal-subtitle">Информация о ваших текущих ограничениях OpenRouter</div>
+
+            <div class="limit-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="limit-label">Бесплатные запросы сегодня</span>
+                    <span class="limit-value" id="freeUsedLabel">- / -</span>
+                </div>
+                <div class="limit-bar-container">
+                    <div class="limit-bar" id="freeLimitBar" style="width: 0%;"></div>
+                </div>
+                <div style="font-size: 11px; color: var(--text-secondary); text-align: right;" id="freeTierLabel"></div>
+            </div>
+
+            <div class="limit-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="limit-label">Платные кредиты</span>
+                    <span class="limit-value" id="paidCreditsLabel">-</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-secondary); text-align: right;" id="paidTierLabel"></div>
+            </div>
+
+            <div class="limit-reset-info" id="resetInfo">
+                Загрузка информации о сбросе...
+            </div>
+
+            <button class="modal-btn" onclick="refreshLimits()" style="margin-top: 12px;">🔄 Обновить данные</button>
         </div>
     </div>
 
@@ -604,6 +658,9 @@
 
     <script>
         const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+        const KEY_INFO_URL = 'https://openrouter.ai/api/v1/key';
+        const CREDITS_URL = 'https://openrouter.ai/api/v1/credits';
+
         let chatHistory = [];
         let currentCode = '';
         let isGenerating = false;
@@ -611,6 +668,7 @@
         let savedChats = []; 
         let currentChatId = null;
         let confirmCallback = null;
+        let cachedKeyInfo = null; // Кэш для информации о ключе
 
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
@@ -621,6 +679,7 @@
         const previewEmpty = document.getElementById('previewEmpty');
         const apiKeyModal = document.getElementById('apiKeyModal');
         const apiKeyInput = document.getElementById('apiKeyInput');
+        const limitModal = document.getElementById('limitModal');
         const attachmentsPreview = document.getElementById('attachmentsPreview');
         const fileInput = document.getElementById('fileInput');
         const imageInput = document.getElementById('imageInput');
@@ -784,6 +843,8 @@
             localStorage.setItem('api_key', key);
             apiKeyModal.classList.remove('show');
             showToast('API-ключ сохранён', 'success');
+            // Сбрасываем кэш при смене ключа
+            cachedKeyInfo = null;
         }
         function getApiKey() { return (localStorage.getItem('api_key') || '').trim(); }
         apiKeyModal.addEventListener('click', e => { if (e.target === apiKeyModal) apiKeyModal.classList.remove('show'); });
@@ -791,7 +852,7 @@
         async function testConnection() {
             const key = apiKeyInput.value.trim();
             if (!key) { showToast('Сначала введите ключ', 'error'); return; }
-            const btn = document.querySelector('.test-btn');
+            const btn = document.querySelector('#apiKeyModal .test-btn');
             btn.textContent = '⏳ Проверяю...'; btn.disabled = true;
             try {
                 const response = await fetch(API_URL, {
@@ -807,6 +868,148 @@
                 btn.textContent = '🔍 Проверить связь'; btn.disabled = false;
             }
         }
+
+        // ===== ЛИМИТЫ =====
+        function getTodayKey() {
+            return 'free_requests_' + new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        }
+
+        function getFreeRequestsToday() {
+            return parseInt(localStorage.getItem(getTodayKey()) || '0', 10);
+        }
+
+        function incrementFreeRequests() {
+            const key = getTodayKey();
+            const current = getFreeRequestsToday();
+            localStorage.setItem(key, current + 1);
+        }
+
+        async function fetchKeyInfo() {
+            const apiKey = getApiKey();
+            if (!apiKey) return null;
+
+            // Если кэш свежий (меньше 60 сек), возвращаем его
+            if (cachedKeyInfo && (Date.now() - cachedKeyInfo.timestamp < 60000)) {
+                return cachedKeyInfo.data;
+            }
+
+            try {
+                const response = await fetch(KEY_INFO_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AI Builder Pro'
+                    }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                cachedKeyInfo = { data, timestamp: Date.now() };
+                return data;
+            } catch (e) {
+                console.warn('Failed to fetch key info:', e);
+                return null;
+            }
+        }
+
+        async function fetchCredits() {
+            const apiKey = getApiKey();
+            if (!apiKey) return null;
+            try {
+                const response = await fetch(CREDITS_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AI Builder Pro'
+                    }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (e) {
+                console.warn('Failed to fetch credits:', e);
+                return null;
+            }
+        }
+
+        async function showLimitModal() {
+            limitModal.classList.add('show');
+            await refreshLimits();
+        }
+
+        async function refreshLimits() {
+            const freeUsed = getFreeRequestsToday();
+            const freeLabel = document.getElementById('freeUsedLabel');
+            const freeBar = document.getElementById('freeLimitBar');
+            const freeTierLabel = document.getElementById('freeTierLabel');
+            const paidCreditsLabel = document.getElementById('paidCreditsLabel');
+            const paidTierLabel = document.getElementById('paidTierLabel');
+            const resetInfo = document.getElementById('resetInfo');
+
+            // Показываем загрузку
+            freeLabel.textContent = '...';
+            paidCreditsLabel.textContent = '...';
+            resetInfo.textContent = 'Загрузка...';
+
+            // 1. Получаем информацию о ключе (там есть лимиты)
+            const keyInfo = await fetchKeyInfo();
+            let dailyLimit = 50; // По умолчанию
+            let isFreeTier = true;
+
+            if (keyInfo && keyInfo.data) {
+                // OpenRouter возвращает free_model_daily_requests в GET /api/v1/key
+                const freeModelInfo = keyInfo.data.free_model_daily_requests;
+                if (freeModelInfo && freeModelInfo.limit) {
+                    dailyLimit = freeModelInfo.limit;
+                }
+                // Определяем, платный ли аккаунт (если куплено >= 10 кредитов)
+                // is_free_tier: false обычно означает, что порог купленных кредитов пройден
+                if (keyInfo.data.is_free_tier === false) {
+                    isFreeTier = false;
+                }
+            }
+
+            // 2. Отображаем бесплатные запросы
+            const freeLeft = Math.max(0, dailyLimit - freeUsed);
+            freeLabel.textContent = `${freeUsed} / ${dailyLimit}`;
+            freeTierLabel.textContent = isFreeTier ? 'Бесплатный тариф (до 10 купленных кредитов)' : 'Расширенный лимит (куплено ≥ 10 кредитов)';
+
+            // Прогресс-бар
+            const percentage = Math.min(100, (freeUsed / dailyLimit) * 100);
+            freeBar.style.width = percentage + '%';
+            freeBar.className = 'limit-bar';
+            if (percentage > 80) freeBar.classList.add('danger');
+            else if (percentage > 50) freeBar.classList.add('warning');
+
+            // 3. Получаем кредиты
+            const creditsData = await fetchCredits();
+            if (creditsData && creditsData.data) {
+                const totalCredits = creditsData.data.total_credits || 0;
+                const totalUsage = creditsData.data.total_usage || 0;
+                const balance = totalCredits - totalUsage;
+                paidCreditsLabel.textContent = `$${balance.toFixed(4)}`;
+                paidTierLabel.textContent = balance > 0 ? 'Доступны платные модели' : 'Платные кредиты не пополнялись';
+            } else {
+                paidCreditsLabel.textContent = 'Нет данных';
+                paidTierLabel.textContent = 'Проверьте API-ключ';
+            }
+
+            // 4. Информация о сбросе (UTC полночь)
+            const now = new Date();
+            const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+            const timeUntilReset = utcMidnight - now;
+            const hours = Math.floor(timeUntilReset / (1000 * 60 * 60));
+            const minutes = Math.floor((timeUntilReset % (1000 * 60 * 60)) / (1000 * 60));
+
+            resetInfo.innerHTML = `
+                <strong>🕐 Сброс бесплатного лимита:</strong><br>
+                Каждый день в 00:00 UTC<br>
+                До сброса осталось: <strong>${hours} ч ${minutes} мин</strong><br>
+                <span style="font-size: 11px; opacity: 0.8;">(по московскому времени — в 03:00, если UTC+3)</span>
+            `;
+        }
+
+        limitModal.addEventListener('click', e => { if (e.target === limitModal) limitModal.classList.remove('show'); });
 
         // ===== ХРАНИЛИЩЕ ЧАТОВ =====
         function loadSavedChats() {
@@ -830,6 +1033,10 @@
             }
             renderSidebar();
             updateHistoryBadge();
+            // Если модалка истории открыта, обновляем и её
+            if (historyModal.classList.contains('show')) {
+                showHistoryModal();
+            }
         }
 
         function updateHistoryBadge() {
@@ -941,7 +1148,6 @@
             }
 
             renderSidebar();
-            // СКРЫВАЕМ ИСТОРИЮ ПРИ ЗАГРУЗКЕ ЧАТА НА МОБИЛЬНОМ
             if (window.innerWidth <= 768) {
                 if (sidebar.classList.contains('mobile-show')) toggleSidebar();
             }
@@ -958,8 +1164,7 @@
                     currentChatId = null;
                     newChat(true);
                 }
-                persistSavedChats();
-                if (historyModal.classList.contains('show')) showHistoryModal();
+                persistSavedChats(); // Это обновит и сайдбар, и модалку
                 showToast('Чат удалён', 'success');
             });
         }
@@ -980,7 +1185,6 @@
             if (!silent && window.innerWidth <= 768) {
                 if (sidebar.classList.contains('mobile-show')) toggleSidebar();
             }
-            // Скрываем предпросмотр на мобильном при создании нового чата
             hidePreview();
         }
 
@@ -1218,6 +1422,25 @@
             const model = document.getElementById('modelSelect').value;
             const hasImages = pendingAttachments.some(a => a.type === 'image');
             const hasFiles = pendingAttachments.some(a => a.type === 'file');
+            const isFreeModel = model.includes(':free') || model === 'openrouter/free';
+
+            // Проверяем бесплатный лимит перед отправкой
+            if (isFreeModel) {
+                const used = getFreeRequestsToday();
+                // Мы не знаем точный лимит без запроса к API, но можем использовать 50 как безопасный дефолт
+                // или попытаться получить его из кэша
+                let limit = 50;
+                if (cachedKeyInfo && cachedKeyInfo.data && cachedKeyInfo.data.free_model_daily_requests) {
+                    limit = cachedKeyInfo.data.free_model_daily_requests.limit || 50;
+                }
+                if (used >= limit) {
+                    const confirmMsg = `Вы использовали ${used} из ${limit} бесплатных запросов сегодня. Продолжить? (Лимит сбросится в 00:00 UTC)`;
+                    // Вместо confirm используем наш showConfirm, но он удаляет... Нужен просто alert
+                    // Проще показать toast и вернуть
+                    showToast(`Дневной лимит бесплатных запросов (${limit}) исчерпан. Сброс в 00:00 UTC.`, 'error', 5000);
+                    return;
+                }
+            }
 
             let userContent;
             const attachmentsForDisplay = [];
@@ -1317,7 +1540,16 @@
 
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
-                    throw new Error(`HTTP ${response.status}: ${errData.error?.message || response.statusText}`);
+                    const errorMessage = errData.error?.message || response.statusText;
+                    
+                    // Специальная обработка лимитов
+                    if (response.status === 429) {
+                        throw new Error(`Лимит запросов исчерпан. ${errorMessage}. Попробуйте позже или смените модель.`);
+                    } else if (response.status === 402) {
+                        throw new Error(`Требуется оплата. ${errorMessage}. Проверьте баланс кредитов.`);
+                    }
+                    
+                    throw new Error(`HTTP ${response.status}: ${errorMessage}`);
                 }
                 const data = await response.json();
                 let rawCode = data.choices[0].message.content || '';
@@ -1325,6 +1557,11 @@
 
                 if (!rawCode.includes('<!DOCTYPE html') && !rawCode.includes('<html')) {
                     throw new Error('Модель не вернула HTML-код. Попробуйте переформулировать запрос или сменить модель.');
+                }
+
+                // Увеличиваем счётчик бесплатных запросов, если использовалась бесплатная модель
+                if (isFreeModel) {
+                    incrementFreeRequests();
                 }
 
                 currentCode = rawCode;
@@ -1339,7 +1576,6 @@
                 previewEmpty.style.display = 'none';
                 codeView.textContent = rawCode;
 
-                // НА МОБИЛЬНОМ АВТОМАТИЧЕСКИ ОТКРЫВАЕМ ПРЕДПРОСМОТР
                 if (window.innerWidth <= 768) {
                     setTimeout(() => showPreview(), 300);
                 }
@@ -1367,10 +1603,16 @@
         // ===== ИНИЦИАЛИЗАЦИЯ =====
         loadSavedChats();
         
-        // Закрываем предпросмотр на мобильном при старте
         if (window.innerWidth <= 768) {
             hidePreview();
         }
+
+        // Закрытие модалок по клику на фон
+        [apiKeyModal, limitModal, historyModal, confirmModal].forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) modal.classList.remove('show');
+            });
+        });
     </script>
 </body>
 </html>
