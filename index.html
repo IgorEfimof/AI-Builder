@@ -403,6 +403,22 @@
             border-radius: 8px; line-height: 1.4;
         }
 
+        /* PROVIDER TABS */
+        .provider-tabs {
+            display: flex; gap: 8px; margin-bottom: 16px;
+        }
+        .provider-tab {
+            flex: 1; padding: 10px; border: 2px solid var(--border); border-radius: 10px;
+            background: var(--bg-primary); color: var(--text-secondary); cursor: pointer;
+            font-size: 13px; font-weight: 600; transition: all 0.2s;
+        }
+        .provider-tab:hover { border-color: var(--accent); color: var(--accent); }
+        .provider-tab.active {
+            border-color: var(--accent); background: var(--accent); color: white;
+        }
+        .provider-section { display: none; }
+        .provider-section.active { display: block; }
+
         /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ (ВАЖНО) ===== */
         @media (max-width: 768px) {
             .main-container { flex-direction: column; height: calc(100dvh - 55px); }
@@ -587,24 +603,45 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- МОДАЛКА API -->
+    <!-- МОДАЛКА API (ОБНОВЛЕНА) -->
     <div class="modal" id="apiKeyModal">
         <div class="modal-content">
-            <div class="modal-title">🔑 API Key</div>
-            <div class="modal-subtitle">
-                Получите ключ на <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a><br>
-                Войдите → Create Key → скопируйте
+            <div class="modal-title">🔑 API Ключи</div>
+            
+            <div class="provider-tabs">
+                <button class="provider-tab active" data-provider="openrouter" onclick="switchProviderTab('openrouter', this)">OpenRouter</button>
+                <button class="provider-tab" data-provider="ollama" onclick="switchProviderTab('ollama', this)">Ollama Cloud</button>
             </div>
-            <input type="password" class="modal-input" id="apiKeyInput" placeholder="Введите ключ (sk-or-...)">
-            <button class="modal-btn" onclick="saveApiKey()">💾 Сохранить</button>
-            <button class="test-btn" onclick="testConnection()">🔍 Проверить связь</button>
+
+            <!-- OpenRouter Section -->
+            <div class="provider-section active" id="openrouterSection">
+                <div class="modal-subtitle">
+                    Получите ключ на <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a><br>
+                    Войдите → Create Key → скопируйте
+                </div>
+                <input type="password" class="modal-input" id="openrouterKeyInput" placeholder="Введите ключ (sk-or-...)">
+                <button class="modal-btn" onclick="saveProviderKey('openrouter')">💾 Сохранить OpenRouter</button>
+                <button class="test-btn" onclick="testConnection('openrouter')">🔍 Проверить OpenRouter</button>
+            </div>
+
+            <!-- Ollama Section -->
+            <div class="provider-section" id="ollamaSection">
+                <div class="modal-subtitle">
+                    Получите ключ на <a href="https://ollama.com/settings/keys" target="_blank">ollama.com/settings/keys</a><br>
+                    Создайте API Key и скопируйте его.<br>
+                    <strong>⚠️ Внимание:</strong> Ключ хранится в браузере. Используйте только для личного пользования.
+                </div>
+                <input type="password" class="modal-input" id="ollamaKeyInput" placeholder="Введите ключ Ollama">
+                <button class="modal-btn" onclick="saveProviderKey('ollama')">💾 Сохранить Ollama</button>
+                <button class="test-btn" onclick="testConnection('ollama')">🔍 Проверить Ollama</button>
+            </div>
         </div>
     </div>
 
     <!-- МОДАЛКА ЛИМИТОВ -->
     <div class="modal" id="limitModal">
         <div class="modal-content">
-            <div class="modal-title">📊 Лимиты</div>
+            <div class="modal-title">📊 Лимиты OpenRouter</div>
             <div class="modal-subtitle">Информация о ваших текущих ограничениях OpenRouter</div>
 
             <div class="limit-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
@@ -657,7 +694,10 @@
     </div>
 
     <script>
-        const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+        // ⚠️ ВАЖНО: ССЫЛКА НА ВАШ CLOUDFLARE WORKER
+        const CLOUDFLARE_WORKER_URL = 'https://my-proxy-3.rromanov2023.workers.dev'; 
+        
+        const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
         const KEY_INFO_URL = 'https://openrouter.ai/api/v1/key';
         const CREDITS_URL = 'https://openrouter.ai/api/v1/credits';
 
@@ -668,7 +708,8 @@
         let savedChats = []; 
         let currentChatId = null;
         let confirmCallback = null;
-        let cachedKeyInfo = null; // Кэш для информации о ключе
+        let cachedKeyInfo = null;
+        let currentProvider = 'openrouter';
 
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
@@ -678,7 +719,6 @@
         const previewPanel = document.getElementById('previewPanel');
         const previewEmpty = document.getElementById('previewEmpty');
         const apiKeyModal = document.getElementById('apiKeyModal');
-        const apiKeyInput = document.getElementById('apiKeyInput');
         const limitModal = document.getElementById('limitModal');
         const attachmentsPreview = document.getElementById('attachmentsPreview');
         const fileInput = document.getElementById('fileInput');
@@ -692,6 +732,7 @@
         const dropZone = document.getElementById('dropZone');
         const toastContainer = document.getElementById('toastContainer');
         const confirmModal = document.getElementById('confirmModal');
+        const modelSelect = document.getElementById('modelSelect');
 
         // ===== ТЕМЫ =====
         document.querySelectorAll('.theme-btn').forEach(btn => {
@@ -832,46 +873,116 @@
             }
         }
 
-        // ===== API КЛЮЧ =====
+        // ===== API КЛЮЧИ =====
         function showApiKeyModal() {
-            apiKeyInput.value = localStorage.getItem('api_key') || '';
+            document.getElementById('openrouterKeyInput').value = localStorage.getItem('openrouter_api_key') || '';
+            document.getElementById('ollamaKeyInput').value = localStorage.getItem('ollama_api_key') || '';
             apiKeyModal.classList.add('show');
         }
-        function saveApiKey() {
-            const key = apiKeyInput.value.trim();
-            if (!key) { showToast('Введите ключ', 'error'); return; }
-            localStorage.setItem('api_key', key);
-            apiKeyModal.classList.remove('show');
-            showToast('API-ключ сохранён', 'success');
-            // Сбрасываем кэш при смене ключа
-            cachedKeyInfo = null;
-        }
-        function getApiKey() { return (localStorage.getItem('api_key') || '').trim(); }
-        apiKeyModal.addEventListener('click', e => { if (e.target === apiKeyModal) apiKeyModal.classList.remove('show'); });
 
-        async function testConnection() {
-            const key = apiKeyInput.value.trim();
-            if (!key) { showToast('Сначала введите ключ', 'error'); return; }
-            const btn = document.querySelector('#apiKeyModal .test-btn');
-            btn.textContent = '⏳ Проверяю...'; btn.disabled = true;
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                    body: JSON.stringify({ model: 'openrouter/free', messages: [{ role: 'user', content: 'OK' }], max_tokens: 10 })
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                showToast('API работает отлично!', 'success');
-            } catch (error) {
-                showToast(`Ошибка: ${error.message}`, 'error');
-            } finally {
-                btn.textContent = '🔍 Проверить связь'; btn.disabled = false;
+        function switchProviderTab(provider, btn) {
+            currentProvider = provider;
+            document.querySelectorAll('.provider-tab').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.querySelectorAll('.provider-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(provider + 'Section').classList.add('active');
+            
+            // Обновляем список моделей
+            updateModelList(provider);
+        }
+
+        function updateModelList(provider) {
+            if (provider === 'ollama') {
+                modelSelect.innerHTML = `
+                    <option value="gemma4:31b">Gemma 4 31B (Ollama Cloud)</option>
+                    <option value="qwen3-coder:480b-cloud">Qwen 3 Coder 480B (Ollama Cloud)</option>
+                    <option value="deepseek-v3.1:671b-cloud">DeepSeek V3.1 671B (Ollama Cloud)</option>
+                    <option value="gpt-oss:120b-cloud">GPT-OSS 120B (Ollama Cloud)</option>
+                    <option value="qwen3:235b-cloud">Qwen 3 235B (Ollama Cloud)</option>
+                `;
+            } else {
+                modelSelect.innerHTML = `
+                    <option value="openrouter/free">Free Router (бесплатно)</option>
+                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                    <option value="openai/gpt-4o">GPT-4o</option>
+                    <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (бесплатно)</option>
+                    <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (бесплатно)</option>
+                    <option value="deepseek/deepseek-chat:free">DeepSeek Chat (бесплатно)</option>
+                    <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (бесплатно)</option>
+                `;
             }
         }
 
-        // ===== ЛИМИТЫ =====
+        function saveProviderKey(provider) {
+            let key;
+            if (provider === 'openrouter') {
+                key = document.getElementById('openrouterKeyInput').value.trim();
+                if (!key) { showToast('Введите ключ OpenRouter', 'error'); return; }
+                localStorage.setItem('openrouter_api_key', key);
+                cachedKeyInfo = null;
+            } else {
+                key = document.getElementById('ollamaKeyInput').value.trim();
+                if (!key) { showToast('Введите ключ Ollama', 'error'); return; }
+                localStorage.setItem('ollama_api_key', key);
+            }
+            apiKeyModal.classList.remove('show');
+            showToast(`Ключ ${provider === 'openrouter' ? 'OpenRouter' : 'Ollama'} сохранён`, 'success');
+        }
+
+        function getApiKey(provider) {
+            if (provider === 'ollama') {
+                return (localStorage.getItem('ollama_api_key') || '').trim();
+            }
+            return (localStorage.getItem('openrouter_api_key') || '').trim();
+        }
+
+        apiKeyModal.addEventListener('click', e => { if (e.target === apiKeyModal) apiKeyModal.classList.remove('show'); });
+
+        async function testConnection(provider) {
+            const key = provider === 'openrouter' 
+                ? document.getElementById('openrouterKeyInput').value.trim()
+                : document.getElementById('ollamaKeyInput').value.trim();
+            
+            if (!key) { showToast('Сначала введите ключ', 'error'); return; }
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Проверяю...'; btn.disabled = true;
+            
+            try {
+                // Если провайдер Ollama, используем наш Worker
+                const url = provider === 'ollama' 
+                    ? `${CLOUDFLARE_WORKER_URL}/?url=https://ollama.com/v1/chat/completions`
+                    : OPENROUTER_API_URL;
+                    
+                const model = provider === 'ollama' ? 'gemma4:31b' : 'openrouter/free';
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${key}`
+                    },
+                    body: JSON.stringify({ 
+                        model: model, 
+                        messages: [{ role: 'user', content: 'OK' }], 
+                        max_tokens: 10 
+                    })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                showToast(`${provider === 'ollama' ? 'Ollama' : 'OpenRouter'} работает отлично!`, 'success');
+            } catch (error) {
+                showToast(`Ошибка: ${error.message}`, 'error');
+            } finally {
+                btn.textContent = originalText; btn.disabled = false;
+            }
+        }
+
+        // ===== ЛИМИТЫ (только для OpenRouter) =====
         function getTodayKey() {
-            return 'free_requests_' + new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+            return 'free_requests_' + new Date().toISOString().slice(0, 10);
         }
 
         function getFreeRequestsToday() {
@@ -885,10 +996,9 @@
         }
 
         async function fetchKeyInfo() {
-            const apiKey = getApiKey();
+            const apiKey = getApiKey('openrouter');
             if (!apiKey) return null;
 
-            // Если кэш свежий (меньше 60 сек), возвращаем его
             if (cachedKeyInfo && (Date.now() - cachedKeyInfo.timestamp < 60000)) {
                 return cachedKeyInfo.data;
             }
@@ -913,7 +1023,7 @@
         }
 
         async function fetchCredits() {
-            const apiKey = getApiKey();
+            const apiKey = getApiKey('openrouter');
             if (!apiKey) return null;
             try {
                 const response = await fetch(CREDITS_URL, {
@@ -946,42 +1056,33 @@
             const paidTierLabel = document.getElementById('paidTierLabel');
             const resetInfo = document.getElementById('resetInfo');
 
-            // Показываем загрузку
             freeLabel.textContent = '...';
             paidCreditsLabel.textContent = '...';
             resetInfo.textContent = 'Загрузка...';
 
-            // 1. Получаем информацию о ключе (там есть лимиты)
             const keyInfo = await fetchKeyInfo();
-            let dailyLimit = 50; // По умолчанию
+            let dailyLimit = 50;
             let isFreeTier = true;
 
             if (keyInfo && keyInfo.data) {
-                // OpenRouter возвращает free_model_daily_requests в GET /api/v1/key
                 const freeModelInfo = keyInfo.data.free_model_daily_requests;
                 if (freeModelInfo && freeModelInfo.limit) {
                     dailyLimit = freeModelInfo.limit;
                 }
-                // Определяем, платный ли аккаунт (если куплено >= 10 кредитов)
-                // is_free_tier: false обычно означает, что порог купленных кредитов пройден
                 if (keyInfo.data.is_free_tier === false) {
                     isFreeTier = false;
                 }
             }
 
-            // 2. Отображаем бесплатные запросы
-            const freeLeft = Math.max(0, dailyLimit - freeUsed);
             freeLabel.textContent = `${freeUsed} / ${dailyLimit}`;
             freeTierLabel.textContent = isFreeTier ? 'Бесплатный тариф (до 10 купленных кредитов)' : 'Расширенный лимит (куплено ≥ 10 кредитов)';
 
-            // Прогресс-бар
             const percentage = Math.min(100, (freeUsed / dailyLimit) * 100);
             freeBar.style.width = percentage + '%';
             freeBar.className = 'limit-bar';
             if (percentage > 80) freeBar.classList.add('danger');
             else if (percentage > 50) freeBar.classList.add('warning');
 
-            // 3. Получаем кредиты
             const creditsData = await fetchCredits();
             if (creditsData && creditsData.data) {
                 const totalCredits = creditsData.data.total_credits || 0;
@@ -991,10 +1092,9 @@
                 paidTierLabel.textContent = balance > 0 ? 'Доступны платные модели' : 'Платные кредиты не пополнялись';
             } else {
                 paidCreditsLabel.textContent = 'Нет данных';
-                paidTierLabel.textContent = 'Проверьте API-ключ';
+                paidTierLabel.textContent = 'Проверьте API-ключ OpenRouter';
             }
 
-            // 4. Информация о сбросе (UTC полночь)
             const now = new Date();
             const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
             const timeUntilReset = utcMidnight - now;
@@ -1002,7 +1102,7 @@
             const minutes = Math.floor((timeUntilReset % (1000 * 60 * 60)) / (1000 * 60));
 
             resetInfo.innerHTML = `
-                <strong>🕐 Сброс бесплатного лимита:</strong><br>
+                <strong>🕐 Сброс бесплатного лимита OpenRouter:</strong><br>
                 Каждый день в 00:00 UTC<br>
                 До сброса осталось: <strong>${hours} ч ${minutes} мин</strong><br>
                 <span style="font-size: 11px; opacity: 0.8;">(по московскому времени — в 03:00, если UTC+3)</span>
@@ -1033,7 +1133,6 @@
             }
             renderSidebar();
             updateHistoryBadge();
-            // Если модалка истории открыта, обновляем и её
             if (historyModal.classList.contains('show')) {
                 showHistoryModal();
             }
@@ -1164,7 +1263,7 @@
                     currentChatId = null;
                     newChat(true);
                 }
-                persistSavedChats(); // Это обновит и сайдбар, и модалку
+                persistSavedChats();
                 showToast('Чат удалён', 'success');
             });
         }
@@ -1416,28 +1515,28 @@
         async function sendMessage() {
             const prompt = chatInput.value.trim();
             if ((!prompt && pendingAttachments.length === 0) || isGenerating) return;
-            const apiKey = getApiKey();
-            if (!apiKey) { showApiKeyModal(); return; }
+            
+            const apiKey = getApiKey(currentProvider);
+            if (!apiKey) { 
+                showApiKeyModal(); 
+                showToast(`Сначала введите ключ ${currentProvider === 'ollama' ? 'Ollama' : 'OpenRouter'}`, 'info');
+                return; 
+            }
 
-            const model = document.getElementById('modelSelect').value;
+            const model = modelSelect.value;
             const hasImages = pendingAttachments.some(a => a.type === 'image');
             const hasFiles = pendingAttachments.some(a => a.type === 'file');
-            const isFreeModel = model.includes(':free') || model === 'openrouter/free';
+            const isFreeModel = currentProvider === 'openrouter' && (model.includes(':free') || model === 'openrouter/free');
 
-            // Проверяем бесплатный лимит перед отправкой
+            // Проверяем бесплатный лимит перед отправкой (только OpenRouter)
             if (isFreeModel) {
                 const used = getFreeRequestsToday();
-                // Мы не знаем точный лимит без запроса к API, но можем использовать 50 как безопасный дефолт
-                // или попытаться получить его из кэша
                 let limit = 50;
                 if (cachedKeyInfo && cachedKeyInfo.data && cachedKeyInfo.data.free_model_daily_requests) {
                     limit = cachedKeyInfo.data.free_model_daily_requests.limit || 50;
                 }
                 if (used >= limit) {
-                    const confirmMsg = `Вы использовали ${used} из ${limit} бесплатных запросов сегодня. Продолжить? (Лимит сбросится в 00:00 UTC)`;
-                    // Вместо confirm используем наш showConfirm, но он удаляет... Нужен просто alert
-                    // Проще показать toast и вернуть
-                    showToast(`Дневной лимит бесплатных запросов (${limit}) исчерпан. Сброс в 00:00 UTC.`, 'error', 5000);
+                    showToast(`Дневной лимит бесплатных запросов OpenRouter (${limit}) исчерпан. Сброс в 00:00 UTC.`, 'error', 5000);
                     return;
                 }
             }
@@ -1522,7 +1621,12 @@
 
                 messages.push({ role: 'user', content: userContent });
 
-                const response = await fetch(API_URL, {
+                // Используем Worker для Ollama, иначе прямой OpenRouter
+                const apiUrl = currentProvider === 'ollama' 
+                    ? `${CLOUDFLARE_WORKER_URL}/?url=https://ollama.com/v1/chat/completions`
+                    : OPENROUTER_API_URL;
+                
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json', 
@@ -1542,7 +1646,6 @@
                     const errData = await response.json().catch(() => ({}));
                     const errorMessage = errData.error?.message || response.statusText;
                     
-                    // Специальная обработка лимитов
                     if (response.status === 429) {
                         throw new Error(`Лимит запросов исчерпан. ${errorMessage}. Попробуйте позже или смените модель.`);
                     } else if (response.status === 402) {
@@ -1559,7 +1662,6 @@
                     throw new Error('Модель не вернула HTML-код. Попробуйте переформулировать запрос или сменить модель.');
                 }
 
-                // Увеличиваем счётчик бесплатных запросов, если использовалась бесплатная модель
                 if (isFreeModel) {
                     incrementFreeRequests();
                 }
@@ -1606,6 +1708,27 @@
         if (window.innerWidth <= 768) {
             hidePreview();
         }
+
+        // Восстанавливаем провайдера по умолчанию
+        const savedProvider = localStorage.getItem('current_provider') || 'openrouter';
+        currentProvider = savedProvider;
+        updateModelList(savedProvider);
+        
+        // Устанавливаем активный таб провайдера
+        document.querySelectorAll('.provider-tab').forEach(tab => {
+            if (tab.dataset.provider === savedProvider) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+        document.querySelectorAll('.provider-section').forEach(section => {
+            if (section.id === savedProvider + 'Section') {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        });
 
         // Закрытие модалок по клику на фон
         [apiKeyModal, limitModal, historyModal, confirmModal].forEach(modal => {
