@@ -273,7 +273,7 @@
         .preview-tabs { flex-shrink: 0; }
         .preview-tab { flex-shrink: 0; }
         @media (max-width: 768px) {
-            .preview-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow-x: visible; }
+            .preview-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow-x: visible; }
             .preview-tab { min-width: 0; padding: 11px 3px; font-size: 11px; white-space: normal; line-height: 1.25; }
             .code-view { font-size: 12px; padding: 10px; }
         }
@@ -600,6 +600,7 @@
             <div class="preview-tabs">
                 <button class="preview-tab active" data-tab="preview" onclick="switchTab('preview', this)">👁 Предпросмотр</button>
                 <button class="preview-tab" data-tab="code" onclick="switchTab('code', this)">💻 Код</button>
+                <button class="preview-tab" onclick="editCode(event)">✏️ Править</button>
                 <button class="preview-tab" onclick="copyCode(event)">📋 Копировать</button>
                 <button class="preview-tab" onclick="downloadCode(event)">⬇️ Скачать</button>
             </div>
@@ -869,6 +870,18 @@
                 autoSaveActiveChat();
             }
         });
+
+        // Явная кнопка ручного редактирования: открывает вкладку кода и ставит курсор в редактор.
+        function editCode(event) {
+            if (event) event.preventDefault();
+            if (!currentCode && !codeView.value) {
+                showToast('Сначала сгенерируйте код', 'info');
+                return;
+            }
+            switchTab('code', document.querySelector('.preview-tab[data-tab="code"]'));
+            codeView.focus();
+            showToast('Режим редактирования: нажмите на код и внесите изменения', 'info', 3000);
+        }
 
         function showPreview() {
             if (!currentCode) {
