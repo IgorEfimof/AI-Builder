@@ -1915,8 +1915,7 @@
                         attachmentsForDisplay.push({ type: 'image', url: att.content });
                     } else {
                         const fileContext = `\n\n=== ФАЙЛ: ${att.name} ===\n\`\`\`\n${att.content.slice(0, 30000)}\n\`\`\`\n=== КОНЕЦ ФАЙЛА ===\n`;
-                        userContent.push({ type: 'text', text: fileContext });
-                        userContent.push({ type: 'file_text', name: att.name });
+                        userContent.push({ type: 'text', text: fileContext + `\n[Имя вложенного файла: ${att.name}]\n` });
                         attachmentsForDisplay.push({ type: 'file', name: att.name });
                     }
                 });
