@@ -927,7 +927,7 @@
             if (value[0] === '#') return value.length === 4
                 ? '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3]
                 : value.slice(0, 7);
-            const m = value.match(/rgba?\\((\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)/i);
+            const m = value.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
             return m ? '#' + [m[1],m[2],m[3]].map(n => Number(n).toString(16).padStart(2,'0')).join('') : fallback;
         }
 
@@ -948,7 +948,7 @@
             if (visualRadius.value !== '' && Number.isFinite(radius)) el.style.borderRadius = Math.max(0, Math.min(100, radius)) + 'px';
             try {
                 const doc = previewFrame.contentDocument;
-                currentCode = '<!DOCTYPE html>\\n' + doc.documentElement.outerHTML;
+                currentCode = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
                 codeView.value = currentCode;
                 autoSaveActiveChat();
                 showToast('Изменения применены и сохранены в коде приложения', 'success', 3000);
