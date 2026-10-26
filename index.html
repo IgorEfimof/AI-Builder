@@ -642,6 +642,7 @@
                 </div>
                 <div class="visual-editor-actions">
                     <button type="button" class="visual-apply" onclick="applyVisualChanges()">✓ Применить к предпросмотру</button>
+                    <button type="button" id="visualUndoButton" onclick="undoVisualChanges()" disabled>↶ Отменить действие</button>
                     <button type="button" onclick="openSelectedElementCode()">✏️ Открыть код элемента</button>
                 </div>
                 <div class="visual-editor-note" id="visualEditorNote">Выберите элемент в режиме «Выбрать элемент». Изменения сохраняются в код приложения.</div>
@@ -860,6 +861,8 @@
         // ===== ПАНЕЛЬ ПРЕДПРОСМОТРА =====
         let elementSelectionMode = false;
         let selectedVisualElement = null;
+        // Одноуровневый откат последнего применения визуальных изменений.
+        let visualUndoCode = null;
         const elementEditHint = document.getElementById('elementEditHint');
         const visualEditor = document.getElementById('visualEditor');
         const visualEditorTitle = document.getElementById('visualEditorTitle');
@@ -870,6 +873,7 @@
         const visualMargin = document.getElementById('visualMargin');
         const visualRadius = document.getElementById('visualRadius');
         const visualBackground = document.getElementById('visualBackground');
+        const visualUndoButton = document.getElementById('visualUndoButton');
 
         function switchTab(tab, btn) {
             autoSaveActiveChat();
@@ -942,6 +946,9 @@
                 showToast('Сначала выберите элемент в предпросмотре', 'info');
                 return;
             }
+            // Сохраняем состояние до применения, чтобы можно было отменить последний шаг.
+            visualUndoCode = currentCode || (previewFrame.contentDocument ? previewFrame.contentDocument.documentElement.outerHTML : null);
+            if (visualUndoButton) visualUndoButton.disabled = !visualUndoCode;
             if (!visualText.disabled && visualText.value !== '') el.textContent = visualText.value;
             if (visualColor.value) el.style.color = visualColor.value;
             if (visualBackground.value) el.style.backgroundColor = visualBackground.value;
@@ -961,6 +968,27 @@
                 showToast('Элемент изменён, но не удалось сохранить код: ' + err.message, 'error', 4000);
             }
             selectVisualElement(el);
+        }
+
+        function undoVisualChanges() {
+            if (!visualUndoCode) {
+                showToast('Пока нечего отменять', 'info');
+                return;
+            }
+            const codeToRestore = visualUndoCode;
+            visualUndoCode = null;
+            if (visualUndoButton) visualUndoButton.disabled = true;
+            selectedVisualElement = null;
+            if (visualEditor) visualEditor.classList.remove('visible');
+            currentCode = codeToRestore;
+            codeView.value = currentCode;
+            previewFrame.onload = function() {
+                previewFrame.onload = null;
+                if (elementSelectionMode) installElementSelection();
+            };
+            previewFrame.srcdoc = currentCode;
+            autoSaveActiveChat();
+            showToast('Последнее визуальное изменение отменено', 'success', 3000);
         }
 
         function openSelectedElementCode() {
