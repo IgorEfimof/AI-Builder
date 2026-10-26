@@ -1409,21 +1409,66 @@
             renderSidebar();
         }
 
-        function persistSavedChats() {
-            try {
-                if (savedChats.length > 50) savedChats = savedChats.slice(-50);
-                localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats));
-            } catch (e) {
-                if (e.name === 'QuotaExceededError') {
-                    savedChats = savedChats.slice(-20);
-                    try { localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats)); } catch {}
-                    showToast('Хранилище переполнено, удалены старые чаты', 'error');
+        // Подготовка истории к сохранению: не кладём в localStorage base64-файлы
+        // и ограничиваем размер старых переписок, чтобы не переполнять квоту браузера.
+        function makeStorageSafeChat(chat, messageLimit = 10, textLimit = 12000, codeLimit = 60000) {
+            const safeMessages = (Array.isArray(chat.messages) ? chat.messages : []).slice(-messageLimit).map(msg => {
+                let content = msg.content;
+                if (Array.isArray(content)) {
+                    content = content.map(part => {
+                        if (!part || typeof part !== 'object') return { type: 'text', text: String(part ?? '') };
+                        if (part.type === 'text') return { type: 'text', text: String(part.text || '').slice(0, textLimit) };
+                        if (part.type === 'image_url' || part.type === 'image' || part.image_url) {
+                            return { type: 'text', text: '[Изображение было прикреплено; исходные данные изображения не сохраняются в истории]' };
+                        }
+                        return part.text ? { type: 'text', text: String(part.text).slice(0, textLimit) } : { type: 'text', text: '[Вложение]' };
+                    });
+                } else {
+                    content = String(content ?? '').slice(0, textLimit);
+                }
+                return { role: msg.role, content };
+            });
+            return {
+                id: chat.id,
+                title: String(chat.title || 'Без названия').slice(0, 100),
+                messages: safeMessages,
+                code: String(chat.code || '').slice(0, codeLimit),
+                createdAt: chat.createdAt || Date.now(),
+                updatedAt: chat.updatedAt || Date.now()
+            };
+        }
+
+        function persistChatsWithQuotaRecovery() {
+            const attempts = [
+                { chats: 20, messages: 10, text: 12000, code: 60000 },
+                { chats: 12, messages: 8, text: 7000, code: 40000 },
+                { chats: 6, messages: 6, text: 4000, code: 25000 },
+                { chats: 3, messages: 4, text: 2000, code: 12000 },
+                { chats: 1, messages: 4, text: 1500, code: 8000 }
+            ];
+            for (const limits of attempts) {
+                const ordered = [...savedChats].sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0)).slice(-limits.chats);
+                const compact = ordered.map(c => makeStorageSafeChat(c, limits.messages, limits.text, limits.code));
+                try {
+                    localStorage.setItem('ai_builder_chats', JSON.stringify(compact));
+                    savedChats = compact;
+                    return true;
+                } catch (e) {
+                    if (!e || (e.name !== 'QuotaExceededError' && !/quota|storage full/i.test(String(e.message || '')))) throw e;
                 }
             }
-            renderSidebar();
-            if (historyModal.classList.contains('show')) {
-                showHistoryModal();
+            return false;
+        }
+
+        function persistSavedChats() {
+            try {
+                const saved = persistChatsWithQuotaRecovery();
+                if (!saved) showToast('Не хватает места в хранилище браузера. Удалите данные старых чатов или вложений.', 'error', 6000);
+            } catch (e) {
+                showToast('Не удалось сохранить историю: ' + (e.message || 'ошибка хранилища'), 'error', 5000);
             }
+            renderSidebar();
+            if (historyModal.classList.contains('show')) showHistoryModal();
         }
 
         function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -1444,41 +1489,26 @@
         // содержательном сообщении и обновляет её далее без дублирования чатов.
         function autoSaveActiveChat() {
             if (!Array.isArray(chatHistory) || chatHistory.length === 0) return false;
-
             try {
-                let chat = currentChatId
-                    ? savedChats.find(c => String(c.id) === String(currentChatId))
-                    : null;
-
+                let chat = currentChatId ? savedChats.find(c => String(c.id) === String(currentChatId)) : null;
                 if (!chat) {
-                    chat = {
-                        id: generateId(),
-                        title: generateTitle(chatHistory),
-                        messages: [],
-                        code: '',
-                        createdAt: Date.now(),
-                        updatedAt: Date.now()
-                    };
+                    chat = { id: generateId(), title: generateTitle(chatHistory), messages: [], code: '', createdAt: Date.now(), updatedAt: Date.now() };
                     savedChats.push(chat);
                     currentChatId = chat.id;
                 }
-
-                chat.messages = chatHistory.map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }));
+                // В памяти оставляем полную переписку, а для постоянного хранилища
+                // создаём компактную копию: большие изображения и длинные ответы не должны
+                // блокировать переходы между вкладками.
+                chat.messages = chatHistory.map(msg => ({ role: msg.role, content: msg.content }));
                 chat.code = currentCode || '';
                 chat.title = generateTitle(chatHistory);
                 chat.updatedAt = Date.now();
-
-                // Записываем напрямую, чтобы автосохранение не вызывало лишнюю
-                // перерисовку модального окна в процессе переключения вкладок.
-                if (savedChats.length > 50) {
-                    savedChats.sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0));
-                    savedChats = savedChats.slice(-50);
-                }
-                localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats));
+                const saved = persistChatsWithQuotaRecovery();
                 renderSidebar();
+                if (!saved) {
+                    showToast('Автосохранение не удалось: хранилище браузера заполнено. История сокращена, но места всё ещё не хватает.', 'error', 6000);
+                    return false;
+                }
                 return true;
             } catch (error) {
                 showToast('Не удалось автоматически сохранить чат: ' + (error.message || 'ошибка хранилища'), 'error', 5000);
