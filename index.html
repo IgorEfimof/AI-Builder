@@ -871,16 +871,30 @@
             }
         });
 
-        // Явная кнопка ручного редактирования: открывает вкладку кода и ставит курсор в редактор.
+        // Явная кнопка ручного редактирования. На телефоне сначала показываем панель,
+        // затем открываем textarea и фокусируем её непосредственно в обработчике нажатия.
         function editCode(event) {
-            if (event) event.preventDefault();
-            if (!currentCode && !codeView.value) {
-                showToast('Сначала сгенерируйте код', 'info');
-                return;
+            // Не вызываем preventDefault(): на мобильных браузерах это может мешать фокусу.
+            if (window.innerWidth <= 768) {
+                previewPanel.classList.add('mobile-show');
             }
+
             switchTab('code', document.querySelector('.preview-tab[data-tab="code"]'));
-            codeView.focus();
-            showToast('Режим редактирования: нажмите на код и внесите изменения', 'info', 3000);
+
+            // Если код ещё не создан, редактор всё равно остаётся доступным для ручного ввода.
+            if (!codeView.value || codeView.value === '// Пока нет сгенерированного кода') {
+                codeView.value = currentCode || '';
+            }
+
+            codeView.removeAttribute('readonly');
+            codeView.removeAttribute('disabled');
+            codeView.focus({ preventScroll: true });
+
+            // Повторный фокус помогает некоторым мобильным браузерам после показа панели.
+            if (document.activeElement !== codeView) {
+                codeView.focus();
+            }
+            showToast('Редактор открыт. Нажмите в поле кода и вводите текст.', 'info', 3000);
         }
 
         function showPreview() {
