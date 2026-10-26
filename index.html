@@ -2069,10 +2069,10 @@
                 // Заменяем маркеры изображений реальными data URL вложений.
                 // Так модель может указать изображение в HTML, не генерируя вручную длинный Base64.
                 if (hasImages) {
-                    const imageAssetsForHtml = pendingAttachments.filter(a => a.type === 'image');
+                    const imageAssetsForHtml = attachmentsForDisplay.filter(a => a.type === 'image');
                     imageAssetsForHtml.forEach((att, index) => {
                         const markerToken = '__AI_BUILDER_IMAGE_' + (index + 1) + '__';
-                        rawCode = rawCode.split(markerToken).join(att.content);
+                        rawCode = rawCode.split(markerToken).join(att.url);
                     });
                 }
 
