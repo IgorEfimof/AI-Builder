@@ -1381,8 +1381,10 @@
             document.getElementById('confirmText').textContent = text;
             confirmCallback = callback;
             document.getElementById('confirmOkBtn').onclick = () => {
+                // Сохраняем callback до закрытия окна: closeConfirm() очищает confirmCallback.
+                const callback = confirmCallback;
                 closeConfirm();
-                if (confirmCallback) confirmCallback();
+                if (typeof callback === 'function') callback();
             };
             confirmModal.classList.add('show');
         }
