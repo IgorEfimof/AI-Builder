@@ -881,6 +881,11 @@
             codeView.style.display = tab === 'code' ? 'block' : 'none';
             elementSelectionMode = tab === 'select';
             if (elementEditHint) elementEditHint.classList.toggle('visible', elementSelectionMode);
+            // Панель визуальных настроек показываем только в режиме выбора элемента.
+            if (visualEditor) visualEditor.classList.toggle('visible', elementSelectionMode && !!selectedVisualElement);
+            if (!elementSelectionMode) {
+                selectedVisualElement = null;
+            }
             previewFrame.classList.toggle('select-mode', elementSelectionMode);
             if (tab === 'code') codeView.value = currentCode || '// Пока нет сгенерированного кода';
             if (showingPreview) installElementSelection();
