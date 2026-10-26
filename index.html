@@ -258,9 +258,24 @@
         .preview-content { flex: 1; position: relative; overflow: hidden; }
         .preview-frame { width: 100%; height: 100%; border: none; background: white; }
         .code-view {
-            width: 100%; height: 100%; padding: 12px; background: var(--bg-tertiary);
-            color: var(--text-primary); font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px;
-            overflow: auto; white-space: pre-wrap; display: none; line-height: 1.5;
+            display: none; width: 100%; height: 100%; min-height: 0; padding: 12px;
+            background: var(--bg-tertiary); color: var(--text-primary);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px;
+            line-height: 1.5; white-space: pre; overflow: auto; resize: none;
+            border: 0; outline: none; tab-size: 4; -webkit-overflow-scrolling: touch;
+        }
+        .code-view:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+        .code-edit-hint {
+            display: none; padding: 6px 10px; font-size: 11px; color: var(--text-secondary);
+            background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+        }
+        .code-edit-hint.visible { display: block; }
+        .preview-tabs { flex-shrink: 0; }
+        .preview-tab { flex-shrink: 0; }
+        @media (max-width: 768px) {
+            .preview-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow-x: visible; }
+            .preview-tab { min-width: 0; padding: 11px 3px; font-size: 11px; white-space: normal; line-height: 1.25; }
+            .code-view { font-size: 12px; padding: 10px; }
         }
         .preview-empty {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -595,7 +610,7 @@
                     <div class="preview-empty-sub">Опишите приложение в чате или загрузите скриншот — AI сгенерирует готовый HTML/CSS/JS код</div>
                 </div>
                 <iframe class="preview-frame" id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups" style="display:none;"></iframe>
-                <div class="code-view" id="codeView"></div>
+                <textarea class="code-view" id="codeView" aria-label="Редактирование HTML-кода" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" placeholder="Здесь появится HTML-код. Можно редактировать его вручную."></textarea>
             </div>
         </div>
     </div>
@@ -821,9 +836,39 @@
                 previewFrame.style.display = 'none';
                 previewEmpty.style.display = 'none';
                 codeView.style.display = 'block';
-                codeView.textContent = currentCode || '// Пока нет сгенерированного кода';
+                codeView.value = currentCode || '// Пока нет сгенерированного кода';
             }
         }
+
+        // Синхронизируем редактор с основным кодом. Изменения доступны и на телефоне, и на ПК.
+        function syncCodeFromEditor() {
+            if (!codeView) return currentCode;
+            const edited = codeView.value;
+            if (edited !== currentCode) {
+                currentCode = edited;
+                previewFrame.srcdoc = currentCode;
+                autoSaveActiveChat();
+            }
+            return currentCode;
+        }
+
+        // Ввод Tab в редакторе добавляет отступ, а не переключает фокус.
+        codeView.addEventListener('input', () => {
+            currentCode = codeView.value;
+            previewFrame.srcdoc = currentCode;
+            autoSaveActiveChat();
+        });
+        codeView.addEventListener('keydown', e => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = codeView.selectionStart;
+                const end = codeView.selectionEnd;
+                codeView.setRangeText('    ', start, end, 'end');
+                currentCode = codeView.value;
+                previewFrame.srcdoc = currentCode;
+                autoSaveActiveChat();
+            }
+        });
 
         function showPreview() {
             if (!currentCode) {
@@ -841,6 +886,7 @@
 
         function copyCode(event) {
             if (event) event.preventDefault();
+            syncCodeFromEditor();
             if (!currentCode) {
                 showToast('Нет кода для копирования', 'info');
                 return;
@@ -869,6 +915,7 @@
 
         function downloadCode(event) {
             if (event) event.preventDefault();
+            syncCodeFromEditor();
             if (!currentCode) {
                 showToast('Нет кода для скачивания', 'info');
                 return;
@@ -1299,13 +1346,13 @@
                 previewFrame.srcdoc = chat.code;
                 previewFrame.style.display = 'block';
                 previewEmpty.style.display = 'none';
-                codeView.textContent = chat.code;
+                codeView.value = chat.code;
             } else {
                 currentCode = '';
                 previewFrame.srcdoc = '';
                 previewFrame.style.display = 'none';
                 previewEmpty.style.display = 'flex';
-                codeView.textContent = '';
+                codeView.value = '';
             }
 
             renderSidebar();
@@ -1794,7 +1841,7 @@
                 previewFrame.srcdoc = rawCode;
                 previewFrame.style.display = 'block';
                 previewEmpty.style.display = 'none';
-                codeView.textContent = rawCode;
+                codeView.value = rawCode;
 
                 if (window.innerWidth <= 768) {
                     setTimeout(() => showPreview(), 300);
