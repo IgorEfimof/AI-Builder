@@ -257,6 +257,9 @@
         
         .preview-content { flex: 1; position: relative; overflow: hidden; }
         .preview-frame { width: 100%; height: 100%; border: none; background: white; }
+        .preview-frame.select-mode { cursor: crosshair; }
+        .element-edit-hint { display:none; padding:7px 10px; font-size:11px; color:var(--text-secondary); background:var(--bg-secondary); border-bottom:1px solid var(--border); }
+        .element-edit-hint.visible { display:block; }
         .code-view {
             display: none; width: 100%; height: 100%; min-height: 0; padding: 12px;
             background: var(--bg-tertiary); color: var(--text-primary);
@@ -592,12 +595,13 @@
         <div class="preview-panel" id="previewPanel">
             <button class="mobile-back-btn" onclick="hidePreview()">← Назад к чату</button>
             <div class="preview-tabs">
-                <button class="preview-tab active" data-tab="preview" onclick="switchTab('preview', this)">👁 Предпросмотр</button>
-                <button class="preview-tab" data-tab="code" onclick="switchTab('code', this)">💻 Код</button>
-                <button class="preview-tab" onclick="editCode(event)">✏️ Править</button>
+                <button class="preview-tab active" data-tab="preview" onclick="switchTab('preview', this)">👁 Внешний вид</button>
+                <button class="preview-tab" data-tab="select" onclick="switchTab('select', this)">🎯 Выбрать элемент</button>
+                <button class="preview-tab" data-tab="edit" onclick="editCode(event)">✏️ Править</button>
                 <button class="preview-tab" onclick="copyCode(event)">📋 Копировать</button>
                 <button class="preview-tab" onclick="downloadCode(event)">⬇️ Скачать</button>
             </div>
+            <div class="element-edit-hint" id="elementEditHint">Режим выбора: нажмите на элемент приложения, чтобы открыть связанный фрагмент кода в редакторе.</div>
             <div class="preview-content">
                 <div class="preview-empty" id="previewEmpty">
                     <div class="preview-empty-icon">✨</div>
@@ -810,29 +814,81 @@
         }
 
         // ===== ПАНЕЛЬ ПРЕДПРОСМОТРА =====
+        let elementSelectionMode = false;
+        const elementEditHint = document.getElementById('elementEditHint');
+
         function switchTab(tab, btn) {
-            // Перед переключением вкладки сохраняем текущую переписку и код.
-            // Это не требует от пользователя нажимать «Сохранить чат».
             autoSaveActiveChat();
             document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
             if (btn && btn.dataset.tab) btn.classList.add('active');
+            const showingPreview = tab === 'preview' || tab === 'select';
+            previewFrame.style.display = showingPreview && currentCode ? 'block' : 'none';
+            previewEmpty.style.display = showingPreview && !currentCode ? 'flex' : 'none';
+            codeView.style.display = tab === 'code' ? 'block' : 'none';
+            elementSelectionMode = tab === 'select';
+            if (elementEditHint) elementEditHint.classList.toggle('visible', elementSelectionMode);
+            previewFrame.classList.toggle('select-mode', elementSelectionMode);
+            if (tab === 'code') codeView.value = currentCode || '// Пока нет сгенерированного кода';
+            if (showingPreview) installElementSelection();
+        }
 
-            if (tab === 'preview') {
-                if (currentCode) {
-                    previewFrame.style.display = 'block';
-                    previewEmpty.style.display = 'none';
-                } else {
-                    previewFrame.style.display = 'none';
-                    previewEmpty.style.display = 'flex';
-                }
-                codeView.style.display = 'none';
-            } else if (tab === 'code') {
-                previewFrame.style.display = 'none';
-                previewEmpty.style.display = 'none';
-                codeView.style.display = 'block';
-                codeView.value = currentCode || '// Пока нет сгенерированного кода';
+        function installElementSelection() {
+            try {
+                const doc = previewFrame.contentDocument;
+                if (!doc || !doc.documentElement || doc.documentElement.dataset.aiBuilderSelectionReady === '1') return;
+                doc.documentElement.dataset.aiBuilderSelectionReady = '1';
+                doc.addEventListener('click', function(e) {
+                    if (!elementSelectionMode) return;
+                    e.preventDefault(); e.stopPropagation();
+                    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                    const el = e.target && e.target.closest ? e.target.closest('body *') : e.target;
+                    if (el) openCodeForElement(el);
+                }, true);
+            } catch (err) { console.warn('Не удалось включить выбор элемента:', err); }
+        }
+
+        function openCodeForElement(el) {
+            const source = currentCode || '';
+            let start = -1, end = -1;
+            const fragment = el.outerHTML;
+            if (fragment) { start = source.indexOf(fragment); if (start >= 0) end = start + fragment.length; }
+            if (start < 0 && el.id) {
+                const marker1 = 'id="' + el.id + '"';
+                const marker2 = "id='" + el.id + "'";
+                let pos = source.indexOf(marker1); if (pos < 0) pos = source.indexOf(marker2);
+                if (pos >= 0) { start = source.lastIndexOf('<', pos); end = source.indexOf('>', pos) + 1; }
+            }
+            if (start < 0 && el.classList && el.classList.length) {
+                const marker = String(el.classList[0]);
+                let pos = source.indexOf('class="' + marker);
+                if (pos < 0) pos = source.indexOf("class='" + marker);
+                if (pos >= 0) { start = source.lastIndexOf('<', pos); end = source.indexOf('>', pos) + 1; }
+            }
+            if (start < 0) {
+                const tag = el.tagName ? el.tagName.toLowerCase() : '';
+                const pos = source.toLowerCase().indexOf('<' + tag);
+                if (pos >= 0) { start = pos; end = source.indexOf('>', pos) + 1; }
+            }
+            if (window.innerWidth <= 768) previewPanel.classList.add('mobile-show');
+            switchTab('code', document.querySelector('.preview-tab[data-tab="edit"]'));
+            codeView.value = source;
+            codeView.focus({ preventScroll: true });
+            if (start >= 0 && end > start) {
+                codeView.setSelectionRange(start, end);
+                const line = source.slice(0, start).split('\n').length;
+                const lineHeight = parseFloat(getComputedStyle(codeView).lineHeight) || 18;
+                codeView.scrollTop = Math.max(0, (line - 3) * lineHeight);
+                showToast('Фрагмент найден в коде и выделен.', 'success');
+            } else {
+                codeView.setSelectionRange(0, 0);
+                showToast('Редактор открыт, но точное место элемента не удалось определить автоматически.', 'info', 4000);
             }
         }
+
+        previewFrame.addEventListener('load', () => {
+            previewFrame.classList.toggle('select-mode', elementSelectionMode);
+            installElementSelection();
+        });
 
         // Синхронизируем редактор с основным кодом. Изменения доступны и на телефоне, и на ПК.
         function syncCodeFromEditor() {
@@ -872,7 +928,7 @@
                 previewPanel.classList.add('mobile-show');
             }
 
-            switchTab('code', document.querySelector('.preview-tab[data-tab="code"]'));
+            switchTab('code', document.querySelector('.preview-tab[data-tab="edit"]'));
 
             // Если код ещё не создан, редактор всё равно остаётся доступным для ручного ввода.
             if (!codeView.value || codeView.value === '// Пока нет сгенерированного кода') {
