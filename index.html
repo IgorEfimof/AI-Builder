@@ -259,7 +259,23 @@
         .preview-frame { width: 100%; height: 100%; border: none; background: white; }
         .preview-frame.select-mode { cursor: crosshair; }
         .element-edit-hint { display:none; padding:7px 10px; font-size:11px; color:var(--text-secondary); background:var(--bg-secondary); border-bottom:1px solid var(--border); }
+
         .element-edit-hint.visible { display:block; }
+        .visual-editor {
+            display:none; padding:10px; background:var(--bg-secondary); border-bottom:1px solid var(--border);
+            color:var(--text-primary); max-height:42%; overflow:auto; -webkit-overflow-scrolling:touch;
+        }
+        .visual-editor.visible { display:block; }
+        .visual-editor-title { font-size:13px; font-weight:700; margin-bottom:8px; }
+        .visual-editor-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+        .visual-field { display:flex; flex-direction:column; gap:4px; min-width:0; font-size:11px; color:var(--text-secondary); }
+        .visual-field input:not([type="color"]) { width:100%; min-width:0; height:34px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); color:var(--text-primary); font:inherit; font-size:13px; }
+        .visual-field input[type="color"] { width:100%; height:34px; padding:2px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); }
+        .visual-editor-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+        .visual-editor-actions button { flex:1; min-width:120px; padding:9px 8px; border:1px solid var(--border); border-radius:9px; background:var(--bg-primary); color:var(--text-primary); font-weight:600; font-size:12px; }
+        .visual-editor-actions .visual-apply { background:var(--accent); border-color:var(--accent); color:white; }
+        .visual-editor-note { margin-top:7px; font-size:10px; line-height:1.4; color:var(--text-secondary); }
+        @media (max-width:768px) { .visual-editor { max-height:44%; padding:8px; } .visual-editor-grid { gap:6px; } }
         .code-view {
             display: none; width: 100%; height: 100%; min-height: 0; padding: 12px;
             background: var(--bg-tertiary); color: var(--text-primary);
@@ -602,6 +618,34 @@
                 <button class="preview-tab" onclick="downloadCode(event)">⬇️ Скачать</button>
             </div>
             <div class="element-edit-hint" id="elementEditHint">Режим выбора: нажмите на элемент приложения, чтобы открыть связанный фрагмент кода в редакторе.</div>
+            <div class="visual-editor" id="visualEditor" aria-live="polite">
+                <div class="visual-editor-title" id="visualEditorTitle">🎨 Настройки элемента</div>
+                <div class="visual-editor-grid">
+                    <label class="visual-field">Текст элемента
+                        <input id="visualText" type="text" placeholder="Текст">
+                    </label>
+                    <label class="visual-field">Цвет текста
+                        <input id="visualColor" type="color" value="#222222">
+                    </label>
+                    <label class="visual-field">Размер шрифта, px
+                        <input id="visualFontSize" type="number" min="6" max="120" placeholder="Напр. 16">
+                    </label>
+                    <label class="visual-field">Отступ, px
+                        <input id="visualMargin" type="number" min="-100" max="200" placeholder="Напр. 8">
+                    </label>
+                    <label class="visual-field">Скругление, px
+                        <input id="visualRadius" type="number" min="0" max="100" placeholder="Напр. 12">
+                    </label>
+                    <label class="visual-field">Цвет фона
+                        <input id="visualBackground" type="color" value="#ffffff">
+                    </label>
+                </div>
+                <div class="visual-editor-actions">
+                    <button type="button" class="visual-apply" onclick="applyVisualChanges()">✓ Применить к предпросмотру</button>
+                    <button type="button" onclick="openSelectedElementCode()">✏️ Открыть код элемента</button>
+                </div>
+                <div class="visual-editor-note" id="visualEditorNote">Выберите элемент в режиме «Выбрать элемент». Изменения сохраняются в код приложения.</div>
+            </div>
             <div class="preview-content">
                 <div class="preview-empty" id="previewEmpty">
                     <div class="preview-empty-icon">✨</div>
@@ -815,7 +859,17 @@
 
         // ===== ПАНЕЛЬ ПРЕДПРОСМОТРА =====
         let elementSelectionMode = false;
+        let selectedVisualElement = null;
         const elementEditHint = document.getElementById('elementEditHint');
+        const visualEditor = document.getElementById('visualEditor');
+        const visualEditorTitle = document.getElementById('visualEditorTitle');
+        const visualEditorNote = document.getElementById('visualEditorNote');
+        const visualText = document.getElementById('visualText');
+        const visualColor = document.getElementById('visualColor');
+        const visualFontSize = document.getElementById('visualFontSize');
+        const visualMargin = document.getElementById('visualMargin');
+        const visualRadius = document.getElementById('visualRadius');
+        const visualBackground = document.getElementById('visualBackground');
 
         function switchTab(tab, btn) {
             autoSaveActiveChat();
@@ -842,9 +896,74 @@
                     e.preventDefault(); e.stopPropagation();
                     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
                     const el = e.target && e.target.closest ? e.target.closest('body *') : e.target;
-                    if (el) openCodeForElement(el);
+                    if (el) selectVisualElement(el);
                 }, true);
             } catch (err) { console.warn('Не удалось включить выбор элемента:', err); }
+        }
+
+        function selectVisualElement(el) {
+            selectedVisualElement = el;
+            if (visualEditor) visualEditor.classList.add('visible');
+            const tag = (el.tagName || 'элемент').toLowerCase();
+            const label = el.id ? '#' + el.id : (el.classList && el.classList.length ? '.' + el.classList[0] : tag);
+            visualEditorTitle.textContent = '🎨 Выбран: ' + label + ' (' + tag + ')';
+            const isTextLeaf = !el.children || el.children.length === 0;
+            visualText.value = isTextLeaf ? (el.textContent || '').trim().slice(0, 500) : '';
+            visualText.disabled = !isTextLeaf;
+            visualText.placeholder = isTextLeaf ? 'Текст элемента' : 'У элемента есть вложенные элементы';
+            const computed = el.ownerDocument.defaultView.getComputedStyle(el);
+            visualColor.value = cssColorToHex(computed.color, '#222222');
+            visualBackground.value = cssColorToHex(computed.backgroundColor, '#ffffff');
+            visualFontSize.value = parseFloat(computed.fontSize) || '';
+            visualMargin.value = parseFloat(computed.marginTop) || 0;
+            visualRadius.value = parseFloat(computed.borderTopLeftRadius) || 0;
+            visualEditorNote.textContent = isTextLeaf
+                ? 'Можно менять текст и оформление. После применения изменения сохранятся в коде приложения.'
+                : 'У элемента есть вложенные элементы, поэтому изменение текста отключено, чтобы не разрушить его содержимое. Оформление менять можно.';
+        }
+
+        function cssColorToHex(value, fallback) {
+            if (!value || value === 'transparent' || value === 'rgba(0, 0, 0, 0)') return fallback;
+            if (value[0] === '#') return value.length === 4
+                ? '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3]
+                : value.slice(0, 7);
+            const m = value.match(/rgba?\\((\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)/i);
+            return m ? '#' + [m[1],m[2],m[3]].map(n => Number(n).toString(16).padStart(2,'0')).join('') : fallback;
+        }
+
+        function applyVisualChanges() {
+            const el = selectedVisualElement;
+            if (!el || !el.isConnected) {
+                showToast('Сначала выберите элемент в предпросмотре', 'info');
+                return;
+            }
+            if (!visualText.disabled && visualText.value !== '') el.textContent = visualText.value;
+            if (visualColor.value) el.style.color = visualColor.value;
+            if (visualBackground.value) el.style.backgroundColor = visualBackground.value;
+            const fontSize = Number(visualFontSize.value);
+            if (visualFontSize.value !== '' && Number.isFinite(fontSize)) el.style.fontSize = Math.max(6, Math.min(120, fontSize)) + 'px';
+            const margin = Number(visualMargin.value);
+            if (visualMargin.value !== '' && Number.isFinite(margin)) el.style.margin = Math.max(-100, Math.min(200, margin)) + 'px';
+            const radius = Number(visualRadius.value);
+            if (visualRadius.value !== '' && Number.isFinite(radius)) el.style.borderRadius = Math.max(0, Math.min(100, radius)) + 'px';
+            try {
+                const doc = previewFrame.contentDocument;
+                currentCode = '<!DOCTYPE html>\\n' + doc.documentElement.outerHTML;
+                codeView.value = currentCode;
+                autoSaveActiveChat();
+                showToast('Изменения применены и сохранены в коде приложения', 'success', 3000);
+            } catch (err) {
+                showToast('Элемент изменён, но не удалось сохранить код: ' + err.message, 'error', 4000);
+            }
+            selectVisualElement(el);
+        }
+
+        function openSelectedElementCode() {
+            if (!selectedVisualElement) {
+                showToast('Сначала выберите элемент', 'info');
+                return;
+            }
+            openCodeForElement(selectedVisualElement);
         }
 
         function openCodeForElement(el) {
