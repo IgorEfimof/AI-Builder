@@ -812,192 +812,78 @@
 
         // ===== ПАНЕЛЬ ПРЕДПРОСМОТРА =====
         let elementSelectMode = false;
-
         function switchTab(tab, btn) {
             autoSaveActiveChat();
             document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
             if (btn && btn.dataset.tab) btn.classList.add('active');
-
             if (tab === 'preview') {
-                elementSelectMode = false;
-                updateElementSelectUI();
-                if (currentCode) {
-                    previewFrame.style.display = 'block';
-                    previewEmpty.style.display = 'none';
-                } else {
-                    previewFrame.style.display = 'none';
-                    previewEmpty.style.display = 'flex';
-                }
+                elementSelectMode = false; updateElementSelectUI();
+                if (currentCode) { previewFrame.style.display = 'block'; previewEmpty.style.display = 'none'; }
+                else { previewFrame.style.display = 'none'; previewEmpty.style.display = 'flex'; }
                 codeView.style.display = 'none';
             } else if (tab === 'edit') {
-                elementSelectMode = false;
-                updateElementSelectUI();
-                previewFrame.style.display = 'none';
-                previewEmpty.style.display = 'none';
-                codeView.style.display = 'block';
-                codeView.value = currentCode || '';
+                elementSelectMode = false; updateElementSelectUI();
+                previewFrame.style.display = 'none'; previewEmpty.style.display = 'none';
+                codeView.style.display = 'block'; codeView.value = currentCode || '';
             }
         }
-
         function updateElementSelectUI() {
             const btn = document.querySelector('.preview-tab[data-tab="inspect"]');
             const hint = document.getElementById('elementSelectHint');
-            if (btn) {
-                btn.classList.toggle('active', elementSelectMode);
-                btn.setAttribute('aria-pressed', elementSelectMode ? 'true' : 'false');
-            }
+            if (btn) { btn.classList.toggle('active', elementSelectMode); btn.setAttribute('aria-pressed', elementSelectMode ? 'true' : 'false'); }
             if (hint) hint.classList.toggle('visible', elementSelectMode);
             previewFrame.style.cursor = elementSelectMode ? 'crosshair' : '';
         }
-
         function toggleElementSelect(event) {
             if (event) event.preventDefault();
-            if (!currentCode) {
-                showToast('Сначала сгенерируйте или загрузите HTML-код', 'info');
-                return;
-            }
+            if (!currentCode) { showToast('Сначала сгенерируйте или загрузите HTML-код', 'info'); return; }
             elementSelectMode = !elementSelectMode;
             if (window.innerWidth <= 768) previewPanel.classList.add('mobile-show');
             if (elementSelectMode) {
                 switchTab('preview', document.querySelector('.preview-tab[data-tab="preview"]'));
-                elementSelectMode = true;
-                updateElementSelectUI();
+                elementSelectMode = true; updateElementSelectUI();
                 showToast('Коснитесь нужного элемента в предпросмотре', 'info', 2500);
-            } else {
-                updateElementSelectUI();
-            }
+            } else updateElementSelectUI();
         }
-
         function prepareInspectablePreview(code) {
-            const inspector = `<script>
-(function () {
-  if (window.__aiBuilderInspectorInstalled) return;
-  window.__aiBuilderInspectorInstalled = true;
-  document.addEventListener('click', function (event) {
-    if (!event.isTrusted) return;
-    try {
-      if (window.parent === window) return;
-      if (!window.parent.document) return;
-      var active = window.parent.document.querySelector('#previewPanel .preview-tab[data-tab="inspect"]');
-      if (!active || !active.classList.contains('active')) return;
-      var el = event.target && event.target.nodeType === 1 ? event.target : event.target.parentElement;
-      if (!el) return;
-      event.preventDefault();
-      event.stopPropagation();
-      var chain = [];
-      var node = el;
-      while (node && node.nodeType === 1 && node !== document.body && chain.length < 8) {
-        var part = node.tagName.toLowerCase();
-        if (node.id) part += '#' + node.id;
-        else if (node.classList && node.classList.length) part += '.' + Array.from(node.classList).slice(0, 2).join('.');
-        chain.unshift(part);
-        node = node.parentElement;
-      }
-      window.parent.postMessage({
-        type: 'AI_BUILDER_ELEMENT_SELECTED',
-        tag: el.tagName.toLowerCase(),
-        id: el.id || '',
-        classes: typeof el.className === 'string' ? el.className : '',
-        text: (el.innerText || el.textContent || '').trim().slice(0, 100),
-        outer: el.outerHTML.slice(0, 500),
-        path: chain.join(' > ')
-      }, '*');
-    } catch (err) {}
-  }, true);
-})();
-<\/script>`;
+            const inspector = "<script>\n(function () {\n  if (window.__aiBuilderInspectorInstalled) return;\n  window.__aiBuilderInspectorInstalled = true;\n  document.addEventListener('click', function (event) {\n    if (!event.isTrusted) return;\n    try {\n      var active = window.parent.document.querySelector('#previewPanel .preview-tab[data-tab=\"inspect\"]');\n      if (!active || !active.classList.contains('active')) return;\n      var el = event.target && event.target.nodeType === 1 ? event.target : event.target.parentElement;\n      if (!el) return;\n      event.preventDefault(); event.stopPropagation();\n      window.parent.postMessage({type:'AI_BUILDER_ELEMENT_SELECTED',tag:el.tagName.toLowerCase(),id:el.id||'',classes:typeof el.className==='string'?el.className:'',text:(el.innerText||el.textContent||'').trim().slice(0,100)}, '*');\n    } catch (err) {}\n  }, true);\n})();\n</script>";
             if (/<\/body\s*>/i.test(code)) return code.replace(/<\/body\s*>/i, inspector + '</body>');
             if (/<\/html\s*>/i.test(code)) return code.replace(/<\/html\s*>/i, inspector + '</html>');
             return code + inspector;
         }
-
         function openCodeAtElement(info) {
             if (!info || !currentCode) return;
-            const source = currentCode;
-            const candidates = [];
+            const source = currentCode, candidates = [];
             if (info.id) {
-                const escapedId = info.id.replace(/[.*+?^${}()|[\]\\]/g, '\\        function switchTab(tab, btn) {
-            // Перед переключением вкладки сохраняем текущую переписку и код.
-            // Это не требует от пользователя нажимать «Сохранить чат».
-            autoSaveActiveChat();
-            document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
-            if (btn && btn.dataset.tab) btn.classList.add('active');
-
-            if (tab === 'preview') {
-                if (currentCode) {
-                    previewFrame.style.display = 'block';
-                    previewEmpty.style.display = 'none';
-                } else {
-                    previewFrame.style.display = 'none';
-                    previewEmpty.style.display = 'flex';
-                }
-                codeView.style.display = 'none';
-            } else if (tab === 'code') {
-                previewFrame.style.display = 'none';
-                previewEmpty.style.display = 'none';
-                codeView.style.display = 'block';
-                codeView.value = currentCode || '// Пока нет сгенерированного кода';
+                const escapedId = info.id.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
+                const m = new RegExp('id\\s*=\\s*["\\x27]' + escapedId + '["\\x27]|#' + escapedId + '\\b', 'i').exec(source);
+                if (m) candidates.push({start:m.index,end:m.index+m[0].length});
             }
-        }');
-                const re = new RegExp('(?:id\\s*=\\s*["\\']' + escapedId + '["\\']|#' + escapedId + '\\b)', 'i');
-                const match = re.exec(source);
-                if (match) candidates.push({ start: match.index, end: match.index + match[0].length });
+            const classes = (info.classes || '').split(/\s+/).filter(Boolean);
+            for (const cls of classes.slice(0,3)) {
+                const escaped = cls.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
+                const m = new RegExp('class\\s*=\\s*["\\x27][^"\\x27]*\\b' + escaped + '\\b[^"\\x27]*["\\x27]|\\.' + escaped + '\\b', 'i').exec(source);
+                if (m) candidates.push({start:m.index,end:m.index+m[0].length});
             }
-            const classes = (info.classes || '').split(/\\s+/).filter(Boolean);
-            for (const cls of classes.slice(0, 3)) {
-                const escaped = cls.replace(/[.*+?^${}()|[\]\\]/g, '\\        function switchTab(tab, btn) {
-            // Перед переключением вкладки сохраняем текущую переписку и код.
-            // Это не требует от пользователя нажимать «Сохранить чат».
-            autoSaveActiveChat();
-            document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
-            if (btn && btn.dataset.tab) btn.classList.add('active');
-
-            if (tab === 'preview') {
-                if (currentCode) {
-                    previewFrame.style.display = 'block';
-                    previewEmpty.style.display = 'none';
-                } else {
-                    previewFrame.style.display = 'none';
-                    previewEmpty.style.display = 'flex';
-                }
-                codeView.style.display = 'none';
-            } else if (tab === 'code') {
-                previewFrame.style.display = 'none';
-                previewEmpty.style.display = 'none';
-                codeView.style.display = 'block';
-                codeView.value = currentCode || '// Пока нет сгенерированного кода';
-            }
-        }');
-                const re = new RegExp('(?:class\\s*=\\s*["\\'][^"\\']*\\b' + escaped + '\\b[^"\\']*["\\']|\\.' + escaped + '\\b)', 'i');
-                const match = re.exec(source);
-                if (match) candidates.push({ start: match.index, end: match.index + match[0].length });
-            }
-            const tagRegex = new RegExp('<' + (info.tag || 'div') + '\\b[^>]*>', 'i');
-            const tagMatch = tagRegex.exec(source);
-            if (tagMatch) candidates.push({ start: tagMatch.index, end: tagMatch.index + tagMatch[0].length });
+            const tm = new RegExp('<' + (info.tag || 'div') + '\\b[^>]*>', 'i').exec(source);
+            if (tm) candidates.push({start:tm.index,end:tm.index+tm[0].length});
             if (!candidates.length && info.text) {
-                const textMatch = source.indexOf(info.text);
-                if (textMatch >= 0) candidates.push({ start: textMatch, end: textMatch + info.text.length });
+                const t = source.indexOf(info.text);
+                if (t >= 0) candidates.push({start:t,end:t+info.text.length});
             }
             const target = candidates[0];
-            elementSelectMode = false;
-            updateElementSelectUI();
+            elementSelectMode = false; updateElementSelectUI();
             if (window.innerWidth <= 768) previewPanel.classList.add('mobile-show');
             switchTab('edit', document.querySelector('.preview-tab[data-tab="edit"]'));
             if (target) {
-                codeView.focus({ preventScroll: true });
-                codeView.setSelectionRange(target.start, target.end);
-                const before = source.slice(0, target.start);
-                const line = before.split('\\n').length;
+                codeView.focus({preventScroll:true}); codeView.setSelectionRange(target.start,target.end);
+                const line = source.slice(0,target.start).split('\n').length;
                 const lineHeight = parseFloat(getComputedStyle(codeView).lineHeight) || 18;
-                codeView.scrollTop = Math.max(0, (line - 3) * lineHeight);
-                showToast('Код элемента выделен. Проверьте совпадение перед изменением.', 'success', 3000);
-            } else {
-                showToast('Редактор открыт, но точное место элемента не найдено. Поиск по коду поможет найти его.', 'info', 4000);
-            }
+                codeView.scrollTop = Math.max(0,(line-3)*lineHeight);
+                showToast('Код элемента выделен. Проверьте совпадение перед изменением.','success',3000);
+            } else showToast('Редактор открыт, но точное место элемента не найдено. Поиск по коду поможет найти его.','info',4000);
         }
-
-        window.addEventListener('message', function (event) {
+        window.addEventListener('message', function(event) {
             if (event.source !== previewFrame.contentWindow) return;
             if (!event.data || event.data.type !== 'AI_BUILDER_ELEMENT_SELECTED') return;
             openCodeAtElement(event.data);
@@ -1018,7 +904,7 @@
         // Ввод Tab в редакторе добавляет отступ, а не переключает фокус.
         codeView.addEventListener('input', () => {
             currentCode = codeView.value;
-            previewFrame.srcdoc = currentCode;
+            previewFrame.srcdoc = prepareInspectablePreview(currentCode);
             autoSaveActiveChat();
         });
         codeView.addEventListener('keydown', e => {
@@ -1028,7 +914,7 @@
                 const end = codeView.selectionEnd;
                 codeView.setRangeText('    ', start, end, 'end');
                 currentCode = codeView.value;
-                previewFrame.srcdoc = currentCode;
+                previewFrame.srcdoc = prepareInspectablePreview(currentCode);
                 autoSaveActiveChat();
             }
         });
