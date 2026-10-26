@@ -508,12 +508,6 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </button>
             </div>
-            <div class="icon-btn-wrapper">
-                <button class="icon-btn" onclick="showHistoryModal()" title="История">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h5v5H3zM14 3h7v5h-7zM14 14h7v5h-7zM3 14h5v5H3z"/></svg>
-                </button>
-                <span class="badge" id="historyBadge" style="display:none;">0</span>
-            </div>
             <div class="theme-switchers">
                 <button class="theme-btn active" data-theme="light" title="Светлая">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -753,7 +747,6 @@
         const sidebarList = document.getElementById('sidebarList');
         const historyModal = document.getElementById('historyModal');
         const historyModalList = document.getElementById('historyModalList');
-        const historyBadge = document.getElementById('historyBadge');
         const dropZone = document.getElementById('dropZone');
         const toastContainer = document.getElementById('toastContainer');
         const confirmModal = document.getElementById('confirmModal');
@@ -1206,7 +1199,6 @@
                 savedChats = JSON.parse(localStorage.getItem('ai_builder_chats') || '[]');
             } catch { savedChats = []; }
             renderSidebar();
-            updateHistoryBadge();
         }
 
         function persistSavedChats() {
@@ -1224,15 +1216,6 @@
             updateHistoryBadge();
             if (historyModal.classList.contains('show')) {
                 showHistoryModal();
-            }
-        }
-
-        function updateHistoryBadge() {
-            if (savedChats.length > 0) {
-                historyBadge.textContent = savedChats.length;
-                historyBadge.style.display = 'flex';
-            } else {
-                historyBadge.style.display = 'none';
             }
         }
 
