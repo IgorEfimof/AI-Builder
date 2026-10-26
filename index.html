@@ -802,6 +802,9 @@
 
         // ===== ПАНЕЛЬ ПРЕДПРОСМОТРА =====
         function switchTab(tab, btn) {
+            // Перед переключением вкладки сохраняем текущую переписку и код.
+            // Это не требует от пользователя нажимать «Сохранить чат».
+            autoSaveActiveChat();
             document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
             if (btn && btn.dataset.tab) btn.classList.add('active');
 
@@ -1171,6 +1174,53 @@
                 return text.slice(0, 40).trim() || 'Без названия';
             }
             return 'Новый чат';
+        }
+
+        // Автосохранение текущей переписки. Создаёт запись истории при первом
+        // содержательном сообщении и обновляет её далее без дублирования чатов.
+        function autoSaveActiveChat() {
+            if (!Array.isArray(chatHistory) || chatHistory.length === 0) return false;
+
+            try {
+                let chat = currentChatId
+                    ? savedChats.find(c => String(c.id) === String(currentChatId))
+                    : null;
+
+                if (!chat) {
+                    chat = {
+                        id: generateId(),
+                        title: generateTitle(chatHistory),
+                        messages: [],
+                        code: '',
+                        createdAt: Date.now(),
+                        updatedAt: Date.now()
+                    };
+                    savedChats.push(chat);
+                    currentChatId = chat.id;
+                }
+
+                chat.messages = chatHistory.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+                chat.code = currentCode || '';
+                chat.title = generateTitle(chatHistory);
+                chat.updatedAt = Date.now();
+
+                // Записываем напрямую, чтобы автосохранение не вызывало лишнюю
+                // перерисовку модального окна в процессе переключения вкладок.
+                if (savedChats.length > 50) {
+                    savedChats.sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0));
+                    savedChats = savedChats.slice(-50);
+                }
+                localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats));
+                renderSidebar();
+                updateHistoryBadge();
+                return true;
+            } catch (error) {
+                showToast('Не удалось автоматически сохранить чат: ' + (error.message || 'ошибка хранилища'), 'error', 5000);
+                return false;
+            }
         }
 
         function saveCurrentChat() {
@@ -1750,16 +1800,7 @@
                     setTimeout(() => showPreview(), 300);
                 }
 
-                if (currentChatId) {
-                    const chat = savedChats.find(c => c.id === currentChatId);
-                    if (chat) {
-                        chat.messages = [...chatHistory];
-                        chat.code = currentCode;
-                        chat.title = generateTitle(chatHistory);
-                        chat.updatedAt = Date.now();
-                        persistSavedChats();
-                    }
-                }
+                autoSaveActiveChat();
 
             } catch (error) {
                 typingMsg.remove();
