@@ -1266,18 +1266,50 @@
         }
 
         function deleteChat(chatId, event) {
-            if (event) event.stopPropagation();
-            const chat = savedChats.find(c => c.id === chatId);
-            if (!chat) return;
-            showConfirm(`Удалить чат "${chat.title}"?`, () => {
-                savedChats = savedChats.filter(c => c.id !== chatId);
-                if (currentChatId === chatId) {
-                    currentChatId = null;
-                    newChat(true);
-                }
-                persistSavedChats();
-                showToast('Чат удалён', 'success');
-            });
+            // Не даём клику по корзине открыть сам чат.
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const chat = savedChats.find(c => String(c.id) === String(chatId));
+            if (!chat) {
+                showToast('Чат уже отсутствует в истории. Обновляю список.', 'info');
+                loadSavedChats();
+                return;
+            }
+
+            // Используем штатное подтверждение браузера, чтобы исключить сбой
+            // внутреннего модального окна подтверждения.
+            const confirmed = window.confirm('Удалить чат "' + String(chat.title || 'Без названия') + '"?');
+            if (!confirmed) return;
+
+            const deletingCurrentChat = String(currentChatId) === String(chatId);
+
+            // Удаляем из массива и сразу сохраняем в localStorage.
+            savedChats = savedChats.filter(c => String(c.id) !== String(chatId));
+
+            try {
+                localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats));
+            } catch (error) {
+                showToast('Не удалось сохранить удаление: ' + (error.message || 'ошибка хранилища'), 'error', 5000);
+                loadSavedChats();
+                return;
+            }
+
+            if (deletingCurrentChat) {
+                currentChatId = null;
+                newChat(true);
+            }
+
+            renderSidebar();
+            updateHistoryBadge();
+
+            if (historyModal.classList.contains('show')) {
+                showHistoryModal();
+            }
+
+            showToast('Чат удалён', 'success');
         }
 
         function newChat(silent = false) {
