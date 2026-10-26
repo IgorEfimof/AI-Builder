@@ -1213,7 +1213,6 @@
                 }
             }
             renderSidebar();
-            updateHistoryBadge();
             if (historyModal.classList.contains('show')) {
                 showHistoryModal();
             }
@@ -1272,7 +1271,6 @@
                 }
                 localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats));
                 renderSidebar();
-                updateHistoryBadge();
                 return true;
             } catch (error) {
                 showToast('Не удалось автоматически сохранить чат: ' + (error.message || 'ошибка хранилища'), 'error', 5000);
@@ -1410,8 +1408,6 @@
             }
 
             renderSidebar();
-            updateHistoryBadge();
-
             if (historyModal.classList.contains('show')) {
                 showHistoryModal();
             }
