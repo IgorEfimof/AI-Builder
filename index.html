@@ -1202,9 +1202,9 @@
         function updateModelList(provider) {
             if (provider === 'zai') {
                 modelSelect.innerHTML = `
+                    <option value="glm-5.3-flash">GLM-5.3 Flash (Z.ai; проверь тариф)</option>
                     <option value="glm-5.3">GLM-5.3 (Z.ai; может требовать баланс)</option>
-                    <option value="glm-5.3-flash">GLM-5.3 Flash (Z.ai; проверь доступность)</option>
-                    <option value="glm-4.7-flash">GLM-4.7 Flash (Z.ai; проверь доступность)</option>
+                    <option value="glm-5.2">GLM-5.2 (Z.ai; проверь доступность)</option>
                 `;
             } else if (provider === 'ollama') {
                 modelSelect.innerHTML = `
@@ -1276,7 +1276,7 @@
                         ? 'https://api.z.ai/api/paas/v4/chat/completions'
                         : OPENROUTER_API_URL;
 
-                const model = provider === 'ollama' ? 'gemma4:31b' : provider === 'zai' ? 'glm-5.3' : 'openrouter/free';
+                const model = provider === 'ollama' ? 'gemma4:31b' : provider === 'zai' ? 'glm-5.3-flash' : 'openrouter/free';
                 
                 const response = await fetch(url, {
                     method: 'POST',
