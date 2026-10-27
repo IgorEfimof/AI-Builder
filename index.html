@@ -926,6 +926,10 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
         function switchTab(tab, btn) {
             autoSaveActiveChat();
+            // Если код есть, гарантируем, что iframe получает его и после повторного открытия страницы.
+            if ((tab === 'preview' || tab === 'select') && currentCode && previewFrame.srcdoc !== currentCode) {
+                previewFrame.srcdoc = currentCode;
+            }
             document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
             if (btn && btn.dataset.tab) btn.classList.add('active');
             const showingPreview = tab === 'preview' || tab === 'select';
@@ -1564,6 +1568,7 @@ async function testConnection(provider) {
         function loadSavedChats() {
             try {
                 savedChats = JSON.parse(localStorage.getItem('ai_builder_chats') || '[]');
+                if (!Array.isArray(savedChats)) savedChats = [];
             } catch { savedChats = []; }
             renderSidebar();
         }
@@ -1662,6 +1667,13 @@ async function testConnection(provider) {
                 chat.code = currentCode || '';
                 chat.title = generateTitle(chatHistory);
                 chat.updatedAt = Date.now();
+                // Запоминаем активный проект отдельно от истории сообщений.
+                try {
+                    localStorage.setItem('ai_builder_active_chat_id', String(currentChatId || ''));
+                    if (currentCode) localStorage.setItem('ai_builder_last_code', currentCode);
+                } catch (storageError) {
+                    // Основное сохранение истории ниже также обработает нехватку места.
+                }
                 const saved = persistChatsWithQuotaRecovery();
                 renderSidebar();
                 if (!saved) {
@@ -1710,6 +1722,7 @@ async function testConnection(provider) {
             const chat = savedChats.find(c => c.id === chatId);
             if (!chat) return;
             currentChatId = chatId;
+            try { localStorage.setItem('ai_builder_active_chat_id', String(chatId)); } catch (e) {}
             chatHistory = [...chat.messages];
             chatMessages.innerHTML = '';
             
@@ -1748,6 +1761,7 @@ async function testConnection(provider) {
 
             if (chat.code) {
                 currentCode = chat.code;
+                try { localStorage.setItem('ai_builder_last_code', chat.code); } catch (e) {}
                 previewFrame.srcdoc = chat.code;
                 previewFrame.style.display = 'block';
                 previewEmpty.style.display = 'none';
@@ -2329,7 +2343,30 @@ const response = await fetch(apiUrl, {
 
         // ===== ИНИЦИАЛИЗАЦИЯ =====
         loadSavedChats();
-        
+
+        // Восстанавливаем последний активный проект после перезагрузки Safari.
+        // Не запускаем AI и не создаём новую запись истории автоматически.
+        try {
+            const rememberedChatId = localStorage.getItem('ai_builder_active_chat_id');
+            const rememberedChat = rememberedChatId
+                ? savedChats.find(c => String(c.id) === String(rememberedChatId))
+                : null;
+            if (rememberedChat) {
+                loadChat(rememberedChat.id);
+            } else {
+                const backupCode = localStorage.getItem('ai_builder_last_code');
+                if (backupCode) {
+                    currentCode = backupCode;
+                    previewFrame.srcdoc = backupCode;
+                    codeView.value = backupCode;
+                    previewFrame.style.display = 'block';
+                    previewEmpty.style.display = 'none';
+                }
+            }
+        } catch (restoreError) {
+            console.warn('Не удалось восстановить последний проект:', restoreError);
+        }
+
         if (window.innerWidth <= 768) {
             hidePreview();
         }
