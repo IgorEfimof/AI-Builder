@@ -1916,6 +1916,18 @@ async function testConnection(provider) {
             sidebarOverlay.classList.toggle('show');
         }
 
+        // При переходе с мобильного режима в планшетный закрываем выдвижную историю.
+        // Иначе класс mobile-show сохраняется и панель снова перекрывает экран.
+        let previousMobileLayout = window.matchMedia('(max-width: 768px)').matches;
+        window.addEventListener('resize', () => {
+            const isMobileLayout = window.matchMedia('(max-width: 768px)').matches;
+            if (previousMobileLayout && !isMobileLayout) {
+                sidebar.classList.remove('mobile-show');
+                sidebarOverlay.classList.remove('show');
+            }
+            previousMobileLayout = isMobileLayout;
+        });
+
         // ===== ФАЙЛЫ =====
         fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files), 'file'));
         imageInput.addEventListener('change', e => handleFiles(Array.from(e.target.files), 'image'));
