@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#060b14">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon5.png">
+    <meta name="apple-mobile-web-app-title" content="AI Builder">
+    <meta name="theme-color" content="#060b14">
+    <title>AI Builder Pro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        .theme-light {
+            --bg-primary: #ffffff; --bg-secondary: #f8f9fa; --bg-tertiary: #e9ecef;
+            --text-primary: #212529; --text-secondary: #6c757d;
+            --accent: #007bff; --accent-hover: #0056b3; --border: #dee2e6;
+            --shadow: rgba(0,0,0,0.08); --chat-user: #007bff; --chat-ai: #e9ecef;
+            --danger: #dc3545; --success: #28a745; --warning: #ffc107;
+        }
+        .theme-dark {
+            --bg-primary: #121212; --bg-secondary: #1e1e1e; --bg-tertiary: #2c2c2c;
+            --text-primary: #e0e0e0; --text-secondary: #a0a0a0;
+            --accent: #4dabf7; --accent-hover: #339af0; --border: #333333;
+            --shadow: rgba(0,0,0,0.4); --chat-user: #4dabf7; --chat-ai: #2c2c2c;
+            --danger: #ff6b6b; --success: #51cf66; --warning: #fcc419;
+        }
+        .theme-neutral {
+            --bg-primary: #f5f1eb; --bg-secondary: #ebe5dc; --bg-tertiary: #ddd5c9;
+            --text-primary: #3d3d3d; --text-secondary: #6b6b6b;
+            --accent: #8b7355; --accent-hover: #6d5a43; --border: #c9bfb0;
+            --shadow: rgba(0,0,0,0.06); --chat-user: #8b7355; --chat-ai: #ebe5dc;
+            --danger: #c92a2a; --success: #2b8a3e; --warning: #e67700;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary); color: var(--text-primary);
+            overflow: hidden; height: 100vh; height: 100dvh;
+        }
+
+        /* HEADER */
+        .header {
+            background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+            padding: calc(var(--safe-top) + 10px) 12px 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100;
+            gap: 8px;
+        }
+        .logo { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .logo-icon {
+            width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white;
+        }
+        .header-actions { display: flex; gap: 6px; align-items: center; }
+        .theme-switchers { display: flex; gap: 6px; }
+        .theme-btn {
+            width: 34px; height: 34px; border: 2px solid var(--border); border-radius: 50%;
+            background: var(--bg-primary); cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .theme-btn:hover { transform: scale(1.05); }
+        .theme-btn.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+        .theme-btn svg { width: 16px; height: 16px; color: var(--text-secondary); }
+        .theme-btn.active svg { color: var(--accent); }
+
+        .icon-btn {
+            width: 34px; height: 34px; border: 2px solid var(--border); border-radius: 50%;
+            background: var(--bg-primary); cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: var(--text-secondary); transition: all 0.2s; flex-shrink: 0;
+        }
+        .icon-btn:hover { background: var(--bg-tertiary); color: var(--accent); transform: scale(1.05); }
+        .icon-btn svg { width: 16px; height: 16px; }
+        .icon-btn .badge {
+            position: absolute; top: -4px; right: -4px; background: var(--danger); color: white;
+            font-size: 9px; font-weight: 700; width: 16px; height: 16px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .icon-btn-wrapper { position: relative; }
+
+        .main-container {
+            display: flex; height: calc(100vh - 55px); height: calc(100dvh - 55px);
+            position: relative;
+        }
+        
+        /* SIDEBAR */
+        .sidebar {
+            width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; transition: transform 0.3s ease;
+            z-index: 200;
+        }
+        .sidebar-header {
+            padding: 14px 12px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .sidebar-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
+        .new-chat-btn {
+            background: var(--accent); color: white; border: none; padding: 6px 12px;
+            border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 4px; transition: all 0.2s;
+        }
+        .new-chat-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .new-chat-btn svg { width: 14px; height: 14px; }
+
+        .sidebar-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .sidebar-list::-webkit-scrollbar { width: 6px; }
+        .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .chat-item {
+            padding: 10px 12px; border-radius: 10px; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 8px; margin-bottom: 4px; transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .chat-item:hover { background: var(--bg-tertiary); }
+        .chat-item.active { background: var(--bg-tertiary); border-color: var(--accent); }
+        .chat-item-content { flex: 1; min-width: 0; }
+        .chat-item-title {
+            font-size: 13px; font-weight: 600; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;
+        }
+        .chat-item-meta { font-size: 11px; color: var(--text-secondary); display: flex; gap: 8px; }
+        .chat-item-delete {
+            background: none; border: none; color: var(--text-secondary); cursor: pointer;
+            padding: 4px; border-radius: 6px; opacity: 0; transition: all 0.2s; flex-shrink: 0;
+        }
+        .chat-item:hover .chat-item-delete { opacity: 1; }
+        .chat-item-delete:hover { background: var(--danger); color: white; }
+        .chat-item-delete svg { width: 14px; height: 14px; }
+
+        .sidebar-empty {
+            text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 13px;
+        }
+        .sidebar-empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
+
+        /* CHAT PANEL */
+        .chat-panel {
+            flex: 1; display: flex; flex-direction: column; background: var(--bg-primary);
+            min-width: 0;
+        }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+        }
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .message {
+            max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: 14px;
+            line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .message.user { align-self: flex-end; background: var(--chat-user); color: white; border-bottom-right-radius: 4px; }
+        .message.ai { align-self: flex-start; background: var(--chat-ai); color: var(--text-primary); border-bottom-left-radius: 4px; }
+        .message.error { background: var(--danger); color: white; }
+        .message.success { background: var(--success); color: white; }
+        .message.raw-text { background: var(--warning); color: #000; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+
+        .message-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .attachment-chip {
+            display: flex; align-items: center; gap: 4px; padding: 4px 10px;
+            background: rgba(0,0,0,0.1); border-radius: 12px; font-size: 11px; font-weight: 600;
+        }
+        .message.user .attachment-chip { background: rgba(255,255,255,0.2); }
+        .attachment-chip img { width: 20px; height: 20px; object-fit: cover; border-radius: 4px; }
+        .attachment-chip svg { width: 12px; height: 12px; }
+
+        .chat-input-container {
+            padding: 10px 12px calc(var(--safe-bottom) + 10px); background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+        }
+        .attachments-preview {
+            display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0;
+            max-height: 80px; overflow-y: auto;
+        }
+        .attachments-preview:empty { display: none; padding: 0; }
+        .preview-chip {
+            display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+            background: var(--bg-tertiary); border-radius: 12px; font-size: 12px;
+            border: 1px solid var(--border); max-width: 180px;
+        }
+        .preview-chip img { width: 24px; height: 24px; object-fit: cover; border-radius: 4px; }
+        .preview-chip svg { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
+        .preview-chip-name { 
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
+            font-weight: 500; color: var(--text-primary);
+        }
+        .preview-chip-remove {
+            background: none; border: none; color: var(--text-secondary); cursor: pointer;
+            padding: 2px; border-radius: 4px; flex-shrink: 0;
+        }
+        .preview-chip-remove:hover { color: var(--danger); }
+        .preview-chip-remove svg { width: 14px; height: 14px; }
+
+        .chat-input-wrapper { display: flex; gap: 8px; align-items: flex-end; }
+        .attach-btn {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--bg-tertiary); 
+            border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .attach-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .attach-btn svg { width: 18px; height: 18px; }
+        .attach-menu { display: flex; gap: 6px; }
+
+        .chat-input {
+            flex: 1; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 20px;
+            padding: 10px 14px; font-size: 14px; color: var(--text-primary); resize: none;
+            max-height: 100px; min-height: 40px; font-family: inherit;
+        }
+        .chat-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        .send-btn {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: none;
+            color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all 0.2s;
+        }
+        .send-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
+        .send-btn:disabled { opacity: 0.5; transform: none; }
+        .send-btn svg { width: 18px; height: 18px; }
+
+        /* MODEL SELECTOR */
+        .model-selector {
+            display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+            background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px;
+            font-size: 11px; margin-bottom: 8px;
+        }
+        .model-selector label { font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+        .model-selector select {
+            flex: 1; background: none; border: none; color: var(--text-primary);
+            font-size: 11px; font-weight: 600; cursor: pointer; outline: none;
+            font-family: inherit;
+        }
+
+        /* PREVIEW PANEL */
+        .preview-panel {
+            flex: 1; display: flex; flex-direction: column; background: var(--bg-primary);
+            border-left: 1px solid var(--border);
+            position: relative;
+        }
+        .preview-tabs {
+            display: flex; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+        .preview-tab {
+            flex: 1; min-width: 80px; padding: 12px 8px; background: none; border: none;
+            color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;
+            border-bottom: 3px solid transparent; white-space: nowrap; transition: all 0.2s;
+        }
+        .preview-tab:hover { background: var(--bg-tertiary); }
+        .preview-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        
+        .preview-content { flex: 1; position: relative; overflow: hidden; }
+        .preview-frame { width: 100%; height: 100%; border: none; background: white; }
+        .preview-frame.select-mode { cursor: crosshair; }
+        .element-edit-hint { display:none; padding:7px 10px; font-size:11px; color:var(--text-secondary); background:var(--bg-secondary); border-bottom:1px solid var(--border); }
+
+        .element-edit-hint.visible { display:block; }
+        .visual-editor {
+            display:none; padding:10px; background:var(--bg-secondary); border-bottom:1px solid var(--border);
+            color:var(--text-primary); max-height:42%; overflow:auto; -webkit-overflow-scrolling:touch;
+        }
+        .visual-editor.visible { display:block; }
+        .visual-editor-title { font-size:13px; font-weight:700; margin-bottom:8px; }
+        .visual-editor-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+        .visual-field { display:flex; flex-direction:column; gap:4px; min-width:0; font-size:11px; color:var(--text-secondary); }
+        .visual-field input:not([type="color"]) { width:100%; min-width:0; height:34px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); color:var(--text-primary); font:inherit; font-size:13px; }
+        .visual-field input[type="color"] { width:100%; height:34px; padding:2px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); }
+        .visual-editor-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+        .visual-editor-actions button { flex:1; min-width:120px; padding:9px 8px; border:1px solid var(--border); border-radius:9px; background:var(--bg-primary); color:var(--text-primary); font-weight:600; font-size:12px; }
+        .visual-editor-actions .visual-apply { background:var(--accent); border-color:var(--accent); color:white; }
+        .visual-editor-note { margin-top:7px; font-size:10px; line-height:1.4; color:var(--text-secondary); }
+        @media (max-width:768px) { .visual-editor { max-height:44%; padding:8px; } .visual-editor-grid { gap:6px; } }
+        .code-view {
+            display: none; width: 100%; height: 100%; min-height: 0; padding: 12px;
+            background: var(--bg-tertiary); color: var(--text-primary);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px;
+            line-height: 1.5; white-space: pre; overflow: auto; resize: none;
+            border: 0; outline: none; tab-size: 4; -webkit-overflow-scrolling: touch;
+        }
+        .code-view:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+        .code-edit-hint {
+            display: none; padding: 6px 10px; font-size: 11px; color: var(--text-secondary);
+            background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+        }
+        .code-edit-hint.visible { display: block; }
+        .preview-tabs { flex-shrink: 0; }
+        .preview-tab { flex-shrink: 0; }
+        @media (max-width: 768px) {
+            .preview-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow-x: visible; }
+            .preview-tab { min-width: 0; padding: 11px 3px; font-size: 11px; white-space: normal; line-height: 1.25; }
+            .code-view { font-size: 12px; padding: 10px; }
+        }
+        .preview-empty {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; color: var(--text-secondary); text-align: center; padding: 40px;
+        }
+        .preview-empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.3; }
+        .preview-empty-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .preview-empty-sub { font-size: 13px; max-width: 300px; line-height: 1.5; }
+
+        /* OVERLAYS & MOBILE */
+        .sidebar-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 199; backdrop-filter: blur(2px);
+        }
+        .sidebar-overlay.show { display: block; }
+
+        .mobile-back-btn {
+            display: none; position: absolute; top: calc(var(--safe-top) + 10px); left: 12px;
+            z-index: 10; background: var(--bg-secondary); color: var(--text-primary);
+            border: 1px solid var(--border); padding: 8px 14px; border-radius: 18px;
+            font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px var(--shadow);
+        }
+        .mobile-menu-btn {
+            display: none; width: 34px; height: 34px; border: 2px solid var(--border); 
+            border-radius: 50%; background: var(--bg-primary); cursor: pointer;
+            align-items: center; justify-content: center; color: var(--text-secondary);
+        }
+        .mobile-menu-btn svg { width: 16px; height: 16px; }
+
+        /* На iPhone в альбомной ориентации история всегда выдвижная и скрыта до нажатия меню. */
+        @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+            .sidebar {
+                position: fixed !important;
+                top: 0; left: 0; bottom: 0;
+                height: 100dvh;
+                width: min(85vw, 320px);
+                z-index: 200;
+                transform: translateX(-100%);
+                box-shadow: 4px 0 24px var(--shadow);
+            }
+            .sidebar.mobile-show { transform: translateX(0); }
+            .mobile-menu-btn { display: inline-flex !important; }
+            .sidebar-overlay.show { display: block; }
+        }
+
+        /* MODAL */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; 
+            padding: 20px; backdrop-filter: blur(4px);
+        }
+        .modal.show { display: flex; animation: fadeIn 0.2s ease; }
+        .modal-content {
+            background: var(--bg-secondary); border-radius: 16px; padding: 24px;
+            max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 85vh; overflow-y: auto;
+        }
+        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .modal-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+        .modal-subtitle a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .modal-input {
+            width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+            background: var(--bg-primary); color: var(--text-primary); font-size: 14px; margin-bottom: 12px;
+            font-family: inherit;
+        }
+        .modal-input:focus { outline: none; border-color: var(--accent); }
+        .modal-btn {
+            width: 100%; padding: 12px; background: var(--accent); color: white; border: none;
+            border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        .modal-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .modal-btn.danger { background: var(--danger); }
+        .modal-btn.danger:hover { background: #c82333; }
+        .test-btn {
+            width: 100%; padding: 10px; background: transparent; border: 1px solid var(--accent);
+            color: var(--accent); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .test-btn:hover { background: var(--accent); color: white; }
+        .api-key-btn {
+            background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-secondary);
+            padding: 6px 12px; border-radius: 16px; font-size: 12px; cursor: pointer;
+            transition: all 0.2s; font-weight: 600;
+        }
+        .api-key-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .confirm-dialog { text-align: center; }
+        .confirm-dialog .modal-title { justify-content: center; }
+        .confirm-dialog .confirm-text { margin: 16px 0; font-size: 14px; line-height: 1.5; }
+        .confirm-actions { display: flex; gap: 8px; }
+        .confirm-actions .modal-btn { margin-bottom: 0; }
+
+        /* DROP ZONE */
+        .drop-zone {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,123,255,0.1); border: 3px dashed var(--accent);
+            z-index: 9999; align-items: center; justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .drop-zone.active { display: flex; }
+        .drop-zone-content {
+            background: var(--bg-secondary); padding: 40px 60px; border-radius: 20px;
+            text-align: center; box-shadow: 0 20px 60px var(--shadow);
+        }
+        .drop-zone-icon { font-size: 48px; margin-bottom: 12px; }
+        .drop-zone-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        .drop-zone-sub { font-size: 13px; color: var(--text-secondary); }
+
+        .typing-indicator { display: flex; gap: 4px; padding: 4px 0; }
+        .typing-dot {
+            width: 7px; height: 7px; background: var(--text-secondary); border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+        /* TOAST */
+        .toast-container {
+            position: fixed; top: 70px; right: 16px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .toast {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            padding: 12px 16px; border-radius: 12px; box-shadow: 0 8px 24px var(--shadow);
+            display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600;
+            animation: slideIn 0.3s ease; min-width: 200px; max-width: 320px;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--accent); }
+        .toast-icon { font-size: 16px; }
+
+        /* LIMIT MODAL */
+        .limit-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: var(--bg-primary); border-radius: 10px;
+            margin-bottom: 8px; border: 1px solid var(--border);
+        }
+        .limit-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+        .limit-value { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+        .limit-bar-container {
+            width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px;
+            margin-top: 8px; overflow: hidden;
+        }
+        .limit-bar {
+            height: 100%; background: var(--success); border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .limit-bar.warning { background: var(--warning); }
+        .limit-bar.danger { background: var(--danger); }
+        .limit-reset-info {
+            font-size: 12px; color: var(--text-secondary); text-align: center;
+            margin-top: 16px; padding: 10px; background: var(--bg-tertiary);
+            border-radius: 8px; line-height: 1.4;
+        }
+
+        /* PROVIDER TABS */
+        .provider-tabs {
+            display: flex; gap: 8px; margin-bottom: 16px;
+        }
+        .provider-tab {
+            flex: 1; padding: 10px; border: 2px solid var(--border); border-radius: 10px;
+            background: var(--bg-primary); color: var(--text-secondary); cursor: pointer;
+            font-size: 13px; font-weight: 600; transition: all 0.2s;
+        }
+        .provider-tab:hover { border-color: var(--accent); color: var(--accent); }
+        .provider-tab.active {
+            border-color: var(--accent); background: var(--accent); color: white;
+        }
+        .provider-section { display: none; }
+        .provider-section.active { display: block; }
+
+        /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ (ВАЖНО) ===== */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; height: calc(100dvh - 55px); }
+            
+            .sidebar {
+                position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
+                transform: translateX(-100%); width: 85%; max-width: 320px;
+                box-shadow: 4px 0 24px var(--shadow);
+                height: 100dvh;
+            }
+            .sidebar.mobile-show { transform: translateX(0); }
+            
+            .chat-panel { 
+                max-width: 100%; border-right: none; border-bottom: none; width: 100%;
+                height: 100%;
+            }
+            
+            .preview-panel {
+                display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                z-index: 150; width: 100%; height: 100dvh; background: var(--bg-primary);
+            }
+            .preview-panel.mobile-show { 
+                display: flex; 
+                animation: slideUp 0.3s ease; 
+            }
+            @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+            
+            .mobile-back-btn { display: block; }
+            .mobile-menu-btn { display: flex; }
+            .chat-input { font-size: 16px; }
+            .message { font-size: 15px; padding: 12px 16px; }
+            .header { padding: calc(var(--safe-top) + 8px) 10px 8px; }
+            .logo { font-size: 15px; }
+            .theme-switchers .theme-btn { width: 30px; height: 30px; }
+            .icon-btn { width: 30px; height: 30px; }
+            .attach-btn { width: 36px; height: 36px; }
+            .send-btn { width: 36px; height: 36px; }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-back-btn { display: none !important; }
+            .mobile-menu-btn { display: none !important; }
+            .sidebar-overlay { display: none !important; }
+            .preview-panel { display: flex !important; position: relative; }
+        }
+
+        .file-input-hidden { display: none; }
+    </style>
+</head>
+<body class="theme-light">
+
+    <header class="header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" title="История">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <span>AI Builder Pro</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <!-- КНОПКА ПРЕДПРОСМОТРА -->
+            <div class="icon-btn-wrapper">
+                <button class="icon-btn" onclick="showPreview()" title="Предпросмотр" style="color: var(--accent); border-color: var(--accent);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+            <div class="icon-btn-wrapper">
+                <button class="icon-btn" onclick="showLimitModal()" title="Лимиты">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </button>
+            </div>
+            <div class="theme-switchers">
+                <button class="theme-btn active" data-theme="light" title="Светлая">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+                <button class="theme-btn" data-theme="dark" title="Темная">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <button class="theme-btn" data-theme="neutral" title="Нейтральная">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                </button>
+            </div>
+            <button class="api-key-btn" onclick="showApiKeyModal()">API</button>
+        </div>
+    </header>
+
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">История</span>
+                <button class="new-chat-btn" onclick="newChat()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Новый
+                </button>
+            </div>
+            <div class="sidebar-list" id="sidebarList">
+                <div class="sidebar-empty">
+                    <div class="sidebar-empty-icon">💾</div>
+                    <div>Сохранённых чатов пока нет</div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="chat-panel">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai">
+                    Привет! 👋 Я <strong>AI Builder Pro</strong> — ваш продвинутый AI-помощник.<br><br>
+                    🚀 Опишите приложение, и я сгенерирую код<br>
+                    📎 Загрузите файлы для анализа или доработки<br>
+                    📷 Загрузите скриншот для создания похожего дизайна<br><br>
+                    <em>Подсказка: прикрепите скриншот сайта и напишите "Сделай такой же"</em>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <div class="model-selector">
+                    <label>🤖 Модель:</label>
+                    <select id="modelSelect">
+                        <option value="openrouter/free">Free Router (бесплатно)</option>
+                        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                        <option value="openai/gpt-4o">GPT-4o</option>
+                        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                        <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (бесплатно)</option>
+                        <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (бесплатно)</option>
+                        <option value="deepseek/deepseek-chat:free">DeepSeek Chat (бесплатно)</option>
+                        <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (бесплатно)</option>
+                    </select>
+                </div>
+                <div class="attachments-preview" id="attachmentsPreview"></div>
+                <div class="chat-input-wrapper">
+                    <div class="attach-menu">
+                        <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Прикрепить файл">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        </button>
+                        <button class="attach-btn" onclick="document.getElementById('imageInput').click()" title="Прикрепить фото">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        </button>
+                        <button class="attach-btn" onclick="saveCurrentChat()" title="Сохранить чат">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        </button>
+                    </div>
+                    <textarea class="chat-input" id="chatInput" placeholder="Опишите ваше приложение..." rows="1"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+                <input type="file" id="fileInput" class="file-input-hidden" multiple accept=".html,.htm,.css,.js,.jsx,.ts,.tsx,.vue,.py,.php,.java,.cpp,.c,.cs,.go,.rb,.swift,.kt,.rs,.json,.xml,.md,.txt,.yaml,.yml,.sql,.sh,.bash,.zsh,.conf,.ini,.env,.log,.csv,.svg,.ps1,.bat,.cmd,.asm">
+                <input type="file" id="imageInput" class="file-input-hidden" multiple accept="image/*">
+            </div>
+        </div>
+
+        <div class="preview-panel" id="previewPanel">
+            <button class="mobile-back-btn" onclick="hidePreview()">← Назад к чату</button>
+            <div class="preview-tabs">
+                <button class="preview-tab active" data-tab="preview" onclick="switchTab('preview', this)">👁 Внешний вид</button>
+                <button class="preview-tab" data-tab="select" onclick="switchTab('select', this)">🎯 Выбрать элемент</button>
+                <button class="preview-tab" data-tab="edit" onclick="editCode(event)">✏️ Править</button>
+                <button class="preview-tab" onclick="copyCode(event)">📋 Копировать</button>
+                <button class="preview-tab" onclick="downloadCode(event)">⬇️ Скачать</button>
+            </div>
+            <div class="element-edit-hint" id="elementEditHint">Режим выбора: нажмите на элемент приложения, чтобы открыть связанный фрагмент кода в редакторе.</div>
+            <div class="visual-editor" id="visualEditor" aria-live="polite">
+                <div class="visual-editor-title" id="visualEditorTitle">🎨 Настройки элемента</div>
+                <div class="visual-editor-grid">
+                    <label class="visual-field">Текст элемента
+                        <input id="visualText" type="text" placeholder="Текст">
+                    </label>
+                    <label class="visual-field">Цвет текста
+                        <input id="visualColor" type="color" value="#222222">
+                    </label>
+                    <label class="visual-field">Размер шрифта, px
+                        <input id="visualFontSize" type="number" min="6" max="120" placeholder="Напр. 16">
+                    </label>
+                    <label class="visual-field">Отступ, px
+                        <input id="visualMargin" type="number" min="-100" max="200" placeholder="Напр. 8">
+                    </label>
+                    <label class="visual-field">Скругление, px
+                        <input id="visualRadius" type="number" min="0" max="100" placeholder="Напр. 12">
+                    </label>
+                    <label class="visual-field">Цвет фона
+                        <input id="visualBackground" type="color" value="#ffffff">
+                    </label>
+                </div>
+                <div class="visual-editor-actions">
+                    <button type="button" class="visual-apply" onclick="applyVisualChanges()">✓ Применить к предпросмотру</button>
+                    <button type="button" id="visualUndoButton" onclick="undoVisualChanges()" disabled>↶ Отменить действие</button>
+                    <button type="button" onclick="openSelectedElementCode()">✏️ Открыть код элемента</button>
+                </div>
+                <div class="visual-editor-note" id="visualEditorNote">Выберите элемент в режиме «Выбрать элемент». Изменения сохраняются в код приложения.</div>
+            </div>
+            <div class="preview-content">
+                <div class="preview-empty" id="previewEmpty">
+                    <div class="preview-empty-icon">✨</div>
+                    <div class="preview-empty-title">Здесь появится ваше приложение</div>
+                    <div class="preview-empty-sub">Опишите приложение в чате или загрузите скриншот — AI сгенерирует готовый HTML/CSS/JS код</div>
+                </div>
+                <iframe class="preview-frame" id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups" style="display:none;"></iframe>
+                <textarea class="code-view" id="codeView" aria-label="Редактирование HTML-кода" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" placeholder="Здесь появится HTML-код. Можно редактировать его вручную."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-content">
+            <div class="drop-zone-icon">📂</div>
+            <div class="drop-zone-title">Отпустите файлы здесь</div>
+            <div class="drop-zone-sub">Поддерживаются код-файлы и изображения</div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- МОДАЛКА API -->
+    <div class="modal" id="apiKeyModal">
+        <div class="modal-content">
+            <div class="modal-title">🔑 API Ключи</div>
+            
+            <div class="provider-tabs">
+                <button class="provider-tab active" data-provider="openrouter" onclick="switchProviderTab('openrouter', this)">OpenRouter</button>
+                <button class="provider-tab" data-provider="ollama" onclick="switchProviderTab('ollama', this)">Ollama Cloud</button>
+                <button class="provider-tab" data-provider="zai" onclick="switchProviderTab('zai', this)">Z.ai</button>
+            </div>
+
+            <!-- OpenRouter Section -->
+            <div class="provider-section active" id="openrouterSection">
+                <div class="modal-subtitle">
+                    Получите ключ на <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a><br>
+                    Войдите → Create Key → скопируйте
+                </div>
+                <input type="password" class="modal-input" id="openrouterKeyInput" placeholder="Введите ключ (sk-or-...)">
+                <button class="modal-btn" onclick="saveProviderKey('openrouter')">💾 Сохранить OpenRouter</button>
+                <button class="test-btn" onclick="testConnection('openrouter')">🔍 Проверить OpenRouter</button>
+            </div>
+
+            
+<!-- Z.ai Section -->
+<div class="provider-section" id="zaiSection">
+    <div class="modal-subtitle">
+        Подключение Z.ai (GLM) через ваш Cloudflare Worker.<br>
+        API-ключ Z.ai хранится только в секретах Cloudflare.<br>
+        Здесь вводится токен доступа к Worker, а не API-ключ Z.ai.
+        <br>
+        <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener noreferrer">Открыть Cloudflare</a>
+    </div>
+
+    <input
+        type="password"
+        class="modal-input"
+        id="zaiKeyInput"
+        placeholder="Токен доступа к Cloudflare Worker"
+        autocomplete="off"
+    >
+
+    <button class="modal-btn" onclick="saveProviderKey('zai')">
+        💾 Сохранить токен Worker
+    </button>
+
+    <button class="test-btn" onclick="testConnection('zai')">
+        🔍 Проверить подключение Z.ai
+    </button>
+</div>
+
+
+            <!-- Ollama Section -->
+            <div class="provider-section" id="ollamaSection">
+                <div class="modal-subtitle">
+                    Получите ключ на <a href="https://ollama.com/settings/keys" target="_blank">ollama.com/settings/keys</a><br>
+                    Создайте API Key и скопируйте его.<br>
+                    <strong>⚠️ Внимание:</strong> Ключ хранится в браузере. Используйте только для личного пользования.
+                </div>
+                <input type="password" class="modal-input" id="ollamaKeyInput" placeholder="Введите ключ Ollama">
+                <button class="modal-btn" onclick="saveProviderKey('ollama')">💾 Сохранить Ollama</button>
+                <button class="test-btn" onclick="testConnection('ollama')">🔍 Проверить Ollama</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ЛИМИТОВ -->
+    <div class="modal" id="limitModal">
+        <div class="modal-content">
+            <div class="modal-title">📊 Лимиты OpenRouter</div>
+            <div class="modal-subtitle">Информация о ваших текущих ограничениях OpenRouter</div>
+
+            <div class="limit-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="limit-label">Бесплатные запросы сегодня</span>
+                    <span class="limit-value" id="freeUsedLabel">- / -</span>
+                </div>
+                <div class="limit-bar-container">
+                    <div class="limit-bar" id="freeLimitBar" style="width: 0%;"></div>
+                </div>
+                <div style="font-size: 11px; color: var(--text-secondary); text-align: right;" id="freeTierLabel"></div>
+            </div>
+
+            <div class="limit-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="limit-label">Платные кредиты</span>
+                    <span class="limit-value" id="paidCreditsLabel">-</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-secondary); text-align: right;" id="paidTierLabel"></div>
+            </div>
+
+            <div class="limit-reset-info" id="resetInfo">
+                Загрузка информации о сбросе...
+            </div>
+
+            <button class="modal-btn" onclick="refreshLimits()" style="margin-top: 12px;">🔄 Обновить данные</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ИСТОРИИ -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-title">📚 История чатов</div>
+            <div class="modal-subtitle">Все ваши сохранённые диалоги</div>
+            <div id="historyModalList" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+            <button class="modal-btn danger" onclick="clearAllHistory()" id="clearAllBtn" style="display:none;">🗑️ Удалить всё</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПОДТВЕРЖДЕНИЯ -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content confirm-dialog">
+            <div class="modal-title" id="confirmTitle">⚠️ Подтверждение</div>
+            <div class="confirm-text" id="confirmText">Вы уверены?</div>
+            <div class="confirm-actions">
+                <button class="modal-btn" style="flex:1; background: var(--bg-tertiary); color: var(--text-primary);" onclick="closeConfirm()">Отмена</button>
+                <button class="modal-btn danger" style="flex:1;" id="confirmOkBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ ВАЖНО: ССЫЛКА НА ВАШ CLOUDFLARE WORKER
+        const CLOUDFLARE_WORKER_URL = 'https://my-proxy-3.rromanov2023.workers.dev';
+
+// Отдельный Worker для Z.ai (GLM)
+const ZAI_WORKER_URL = 'https://ai-builder-zai.rromanov2023.workers.dev';
+
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+        const KEY_INFO_URL = 'https://openrouter.ai/api/v1/key';
+        const CREDITS_URL = 'https://openrouter.ai/api/v1/credits';
+
+        let chatHistory = [];
+        let currentCode = '';
+        let isGenerating = false;
+        let pendingAttachments = []; 
+        let savedChats = []; 
+        let currentChatId = null;
+        let confirmCallback = null;
+        let cachedKeyInfo = null;
+        let currentProvider = 'openrouter';
+        let lastUserPrompt = ''; // Для кнопки "Повторить"
+        let lastUserContent = null;
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const previewFrame = document.getElementById('previewFrame');
+        const codeView = document.getElementById('codeView');
+        const previewPanel = document.getElementById('previewPanel');
+        const previewEmpty = document.getElementById('previewEmpty');
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const limitModal = document.getElementById('limitModal');
+        const attachmentsPreview = document.getElementById('attachmentsPreview');
+        const fileInput = document.getElementById('fileInput');
+        const imageInput = document.getElementById('imageInput');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const sidebarList = document.getElementById('sidebarList');
+        const historyModal = document.getElementById('historyModal');
+        const historyModalList = document.getElementById('historyModalList');
+        const dropZone = document.getElementById('dropZone');
+        const toastContainer = document.getElementById('toastContainer');
+        const confirmModal = document.getElementById('confirmModal');
+        const modelSelect = document.getElementById('modelSelect');
+
+        // ===== ТЕМЫ =====
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.theme;
+                document.body.className = `theme-${theme}`;
+                document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                localStorage.setItem('theme', theme);
+            });
+        });
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.className = `theme-${savedTheme}`;
+        const savedBtn = document.querySelector(`[data-theme="${savedTheme}"]`);
+        if (savedBtn) {
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            savedBtn.classList.add('active');
+        }
+
+        // ===== УВЕДОМЛЕНИЯ =====
+        function showToast(message, type = 'info', duration = 3000) {
+            const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span class="toast-icon">${icons[type]}</span><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // ===== УТИЛИТЫ =====
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        function addMessage(role, text, extraClass = '') {
+            const msgEl = document.createElement('div');
+            msgEl.className = `message ${role}` + (extraClass ? ` ${extraClass}` : '');
+            msgEl.innerHTML = text;
+            chatMessages.appendChild(msgEl);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return msgEl;
+        }
+
+        function addTypingIndicator() {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message ai';
+            msgEl.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+            chatMessages.appendChild(msgEl);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return msgEl;
+        }
+
+        // ===== ПАНЕЛЬ ПРЕДПРОСМОТРА =====
+        let elementSelectionMode = false;
+        let selectedVisualElement = null;
+        // Одноуровневый откат последнего применения визуальных изменений.
+        let visualUndoCode = null;
+        const elementEditHint = document.getElementById('elementEditHint');
+        const visualEditor = document.getElementById('visualEditor');
+        const visualEditorTitle = document.getElementById('visualEditorTitle');
+        const visualEditorNote = document.getElementById('visualEditorNote');
+        const visualText = document.getElementById('visualText');
+        const visualColor = document.getElementById('visualColor');
+        const visualFontSize = document.getElementById('visualFontSize');
+        const visualMargin = document.getElementById('visualMargin');
+        const visualRadius = document.getElementById('visualRadius');
+        const visualBackground = document.getElementById('visualBackground');
+        const visualUndoButton = document.getElementById('visualUndoButton');
+
+        // Переключение вкладок не должно оставлять iframe в пустом/устаревшем состоянии.
+        // Код редактора сохраняется до перехода, а предпросмотр восстанавливается при возврате.
+        let previewRecoveryCode = '';
+        let previewRecoveryTimer = null;
+
+        function switchTab(tab, btn) {
+            // Сначала забираем актуальный текст из редактора, если пользователь его менял.
+            if (codeView && codeView.style.display !== 'none' && codeView.value !== '// Пока нет сгенерированного кода') {
+                currentCode = codeView.value;
+            }
+            autoSaveActiveChat();
+
+            document.querySelectorAll('.preview-tab[data-tab]').forEach(b => b.classList.remove('active'));
+            if (btn && btn.dataset.tab) btn.classList.add('active');
+
+            const showingPreview = tab === 'preview' || tab === 'select';
+            const showingCode = tab === 'code';
+
+            if (showingPreview && currentCode) {
+                // Сохраняем точный источник для восстановления, даже если iframe ранее был очищен.
+                previewRecoveryCode = currentCode;
+                try {
+                    const frameDoc = previewFrame.contentDocument;
+                    const renderedText = frameDoc && frameDoc.body ? frameDoc.body.innerText : '';
+                    const frameLooksBlank = !frameDoc || !frameDoc.documentElement ||
+                        (!frameDoc.body || (!frameDoc.body.children.length && !renderedText.trim() &&
+                        !frameDoc.body.innerHTML.trim()));
+                    if (previewFrame.srcdoc !== currentCode || frameLooksBlank) {
+                        previewFrame.onload = function() {
+                            previewFrame.onload = null;
+                            previewFrame.classList.toggle('select-mode', elementSelectionMode);
+                            if (elementSelectionMode) installElementSelection();
+                        };
+                        previewFrame.srcdoc = currentCode;
+                    }
+                } catch (previewError) {
+                    previewFrame.srcdoc = currentCode;
+                }
+            }
+
+            previewFrame.style.display = showingPreview && !!currentCode ? 'block' : 'none';
+            previewEmpty.style.display = showingPreview && !currentCode ? 'flex' : 'none';
+            codeView.style.display = showingCode ? 'block' : 'none';
+
+            elementSelectionMode = tab === 'select';
+            if (elementEditHint) elementEditHint.classList.toggle('visible', elementSelectionMode);
+            // Ссылка на DOM-элемент становится недействительной после перезагрузки iframe.
+            if (!elementSelectionMode) {
+                selectedVisualElement = null;
+                if (visualEditor) visualEditor.classList.remove('visible');
+            } else if (visualEditor) {
+                visualEditor.classList.toggle('visible', !!selectedVisualElement);
+            }
+
+            previewFrame.classList.toggle('select-mode', elementSelectionMode);
+            if (showingCode) codeView.value = currentCode || '// Пока нет сгенерированного кода';
+            if (showingPreview && currentCode) {
+                // Устанавливаем обработчик после показа панели — важно для мобильного Safari.
+                if (previewRecoveryTimer) clearTimeout(previewRecoveryTimer);
+                previewRecoveryTimer = setTimeout(() => {
+                    try {
+                        if (!previewFrame.contentDocument || !previewFrame.contentDocument.documentElement ||
+                            !previewFrame.contentDocument.body) {
+                            previewFrame.srcdoc = previewRecoveryCode || currentCode || '';
+                        }
+                        if (elementSelectionMode) installElementSelection();
+                    } catch (e) {
+                        previewFrame.srcdoc = previewRecoveryCode || currentCode || '';
+                    }
+                }, 80);
+                installElementSelection();
+            }
+            autoSaveActiveChat();
+        }
+
+        function installElementSelection() {
+            try {
+                const doc = previewFrame.contentDocument;
+                if (!doc || !doc.documentElement || doc.documentElement.dataset.aiBuilderSelectionReady === '1') return;
+                doc.documentElement.dataset.aiBuilderSelectionReady = '1';
+                doc.addEventListener('click', function(e) {
+                    if (!elementSelectionMode) return;
+                    e.preventDefault(); e.stopPropagation();
+                    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                    const el = e.target && e.target.closest ? e.target.closest('body *') : e.target;
+                    if (el) selectVisualElement(el);
+                }, true);
+            } catch (err) { console.warn('Не удалось включить выбор элемента:', err); }
+        }
+
+        function selectVisualElement(el) {
+            selectedVisualElement = el;
+            if (visualEditor) visualEditor.classList.add('visible');
+            const tag = (el.tagName || 'элемент').toLowerCase();
+            const label = el.id ? '#' + el.id : (el.classList && el.classList.length ? '.' + el.classList[0] : tag);
+            visualEditorTitle.textContent = '🎨 Выбран: ' + label + ' (' + tag + ')';
+            const isTextLeaf = !el.children || el.children.length === 0;
+            visualText.value = isTextLeaf ? (el.textContent || '').trim().slice(0, 500) : '';
+            visualText.disabled = !isTextLeaf;
+            visualText.placeholder = isTextLeaf ? 'Текст элемента' : 'У элемента есть вложенные элементы';
+            const computed = el.ownerDocument.defaultView.getComputedStyle(el);
+            visualColor.value = cssColorToHex(computed.color, '#222222');
+            visualBackground.value = cssColorToHex(computed.backgroundColor, '#ffffff');
+            visualFontSize.value = parseFloat(computed.fontSize) || '';
+            visualMargin.value = parseFloat(computed.marginTop) || 0;
+            visualRadius.value = parseFloat(computed.borderTopLeftRadius) || 0;
+            visualEditorNote.textContent = isTextLeaf
+                ? 'Можно менять текст и оформление. После применения изменения сохранятся в коде приложения.'
+                : 'У элемента есть вложенные элементы, поэтому изменение текста отключено, чтобы не разрушить его содержимое. Оформление менять можно.';
+        }
+
+        function cssColorToHex(value, fallback) {
+            if (!value || value === 'transparent' || value === 'rgba(0, 0, 0, 0)') return fallback;
+            if (value[0] === '#') return value.length === 4
+                ? '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3]
+                : value.slice(0, 7);
+            const m = value.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+            return m ? '#' + [m[1],m[2],m[3]].map(n => Number(n).toString(16).padStart(2,'0')).join('') : fallback;
+        }
+
+        function applyVisualChanges() {
+            const el = selectedVisualElement;
+            if (!el || !el.isConnected) {
+                showToast('Сначала выберите элемент в предпросмотре', 'info');
+                return;
+            }
+            // Сохраняем состояние до применения, чтобы можно было отменить последний шаг.
+            visualUndoCode = currentCode || (previewFrame.contentDocument ? previewFrame.contentDocument.documentElement.outerHTML : null);
+            if (visualUndoButton) visualUndoButton.disabled = !visualUndoCode;
+            if (!visualText.disabled && visualText.value !== '') el.textContent = visualText.value;
+            if (visualColor.value) el.style.color = visualColor.value;
+            if (visualBackground.value) el.style.backgroundColor = visualBackground.value;
+            const fontSize = Number(visualFontSize.value);
+            if (visualFontSize.value !== '' && Number.isFinite(fontSize)) el.style.fontSize = Math.max(6, Math.min(120, fontSize)) + 'px';
+            const margin = Number(visualMargin.value);
+            if (visualMargin.value !== '' && Number.isFinite(margin)) el.style.margin = Math.max(-100, Math.min(200, margin)) + 'px';
+            const radius = Number(visualRadius.value);
+            if (visualRadius.value !== '' && Number.isFinite(radius)) el.style.borderRadius = Math.max(0, Math.min(100, radius)) + 'px';
+            try {
+                const doc = previewFrame.contentDocument;
+                currentCode = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+                codeView.value = currentCode;
+                autoSaveActiveChat();
+                showToast('Изменения применены и сохранены в коде приложения', 'success', 3000);
+            } catch (err) {
+                showToast('Элемент изменён, но не удалось сохранить код: ' + err.message, 'error', 4000);
+            }
+            selectVisualElement(el);
+        }
+
+        function undoVisualChanges() {
+            if (!visualUndoCode) {
+                showToast('Пока нечего отменять', 'info');
+                return;
+            }
+            const codeToRestore = visualUndoCode;
+            visualUndoCode = null;
+            if (visualUndoButton) visualUndoButton.disabled = true;
+            selectedVisualElement = null;
+            if (visualEditor) visualEditor.classList.remove('visible');
+            currentCode = codeToRestore;
+            codeView.value = currentCode;
+            previewFrame.onload = function() {
+                previewFrame.onload = null;
+                if (elementSelectionMode) installElementSelection();
+            };
+            previewFrame.srcdoc = currentCode;
+            autoSaveActiveChat();
+            showToast('Последнее визуальное изменение отменено', 'success', 3000);
+        }
+
+        function openSelectedElementCode() {
+            if (!selectedVisualElement) {
+                showToast('Сначала выберите элемент', 'info');
+                return;
+            }
+            openCodeForElement(selectedVisualElement);
+        }
+
+        function openCodeForElement(el) {
+            // Фиксируем исходник до переключения интерфейса: это страховка от потери состояния.
+            if (codeView && codeView.value && codeView.value !== '// Пока нет сгенерированного кода') {
+                currentCode = codeView.value;
+            }
+            previewRecoveryCode = currentCode || previewRecoveryCode || '';
+            autoSaveActiveChat();
+            const source = currentCode || '';
+            let start = -1, end = -1;
+            const fragment = el.outerHTML;
+            if (fragment) { start = source.indexOf(fragment); if (start >= 0) end = start + fragment.length; }
+            if (start < 0 && el.id) {
+                const marker1 = 'id="' + el.id + '"';
+                const marker2 = "id='" + el.id + "'";
+                let pos = source.indexOf(marker1); if (pos < 0) pos = source.indexOf(marker2);
+                if (pos >= 0) { start = source.lastIndexOf('<', pos); end = source.indexOf('>', pos) + 1; }
+            }
+            if (start < 0 && el.classList && el.classList.length) {
+                const marker = String(el.classList[0]);
+                let pos = source.indexOf('class="' + marker);
+                if (pos < 0) pos = source.indexOf("class='" + marker);
+                if (pos >= 0) { start = source.lastIndexOf('<', pos); end = source.indexOf('>', pos) + 1; }
+            }
+            if (start < 0) {
+                const tag = el.tagName ? el.tagName.toLowerCase() : '';
+                const pos = source.toLowerCase().indexOf('<' + tag);
+                if (pos >= 0) { start = pos; end = source.indexOf('>', pos) + 1; }
+            }
+            if (window.innerWidth <= 768) previewPanel.classList.add('mobile-show');
+            switchTab('code', document.querySelector('.preview-tab[data-tab="edit"]'));
+            codeView.value = source;
+            codeView.focus({ preventScroll: true });
+            if (start >= 0 && end > start) {
+                codeView.setSelectionRange(start, end);
+                const line = source.slice(0, start).split('\n').length;
+                const lineHeight = parseFloat(getComputedStyle(codeView).lineHeight) || 18;
+                codeView.scrollTop = Math.max(0, (line - 3) * lineHeight);
+                showToast('Фрагмент найден в коде и выделен.', 'success');
+            } else {
+                codeView.setSelectionRange(0, 0);
+                showToast('Редактор открыт, но точное место элемента не удалось определить автоматически.', 'info', 4000);
+            }
+        }
+
+        previewFrame.addEventListener('load', () => {
+            previewFrame.classList.toggle('select-mode', elementSelectionMode);
+            installElementSelection();
+        });
+
+        // Синхронизируем редактор с основным кодом. Изменения доступны и на телефоне, и на ПК.
+        function syncCodeFromEditor() {
+            if (!codeView) return currentCode;
+            const edited = codeView.value;
+            if (edited !== currentCode) {
+                currentCode = edited;
+                previewFrame.srcdoc = currentCode;
+                autoSaveActiveChat();
+            }
+            return currentCode;
+        }
+
+        // Ввод Tab в редакторе добавляет отступ, а не переключает фокус.
+        codeView.addEventListener('input', () => {
+            currentCode = codeView.value;
+            previewFrame.srcdoc = currentCode;
+            autoSaveActiveChat();
+        });
+        codeView.addEventListener('keydown', e => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = codeView.selectionStart;
+                const end = codeView.selectionEnd;
+                codeView.setRangeText('    ', start, end, 'end');
+                currentCode = codeView.value;
+                previewFrame.srcdoc = currentCode;
+                autoSaveActiveChat();
+            }
+        });
+
+        // Явная кнопка ручного редактирования. На телефоне сначала показываем панель,
+        // затем открываем textarea и фокусируем её непосредственно в обработчике нажатия.
+        function editCode(event) {
+            // Не вызываем preventDefault(): на мобильных браузерах это может мешать фокусу.
+            if (window.innerWidth <= 768) {
+                previewPanel.classList.add('mobile-show');
+            }
+
+            switchTab('code', document.querySelector('.preview-tab[data-tab="edit"]'));
+
+            // Если код ещё не создан, редактор всё равно остаётся доступным для ручного ввода.
+            if (!codeView.value || codeView.value === '// Пока нет сгенерированного кода') {
+                codeView.value = currentCode || '';
+            }
+
+            codeView.removeAttribute('readonly');
+            codeView.removeAttribute('disabled');
+            codeView.focus({ preventScroll: true });
+
+            // Повторный фокус помогает некоторым мобильным браузерам после показа панели.
+            if (document.activeElement !== codeView) {
+                codeView.focus();
+            }
+            showToast('Редактор открыт. Нажмите в поле кода и вводите текст.', 'info', 3000);
+        }
+
+        function showPreview() {
+            if (!currentCode) {
+                showToast('Сначала сгенерируйте код', 'info');
+                return;
+            }
+            if (window.innerWidth <= 768) {
+                previewPanel.classList.add('mobile-show');
+            }
+        }
+
+        function hidePreview() {
+            previewPanel.classList.remove('mobile-show');
+        }
+
+        function copyCode(event) {
+            if (event) event.preventDefault();
+            syncCodeFromEditor();
+            if (!currentCode) {
+                showToast('Нет кода для копирования', 'info');
+                return;
+            }
+            const doFallback = () => {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = currentCode;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast('Код скопирован!', 'success');
+                } catch (e) {
+                    showToast('Не удалось скопировать', 'error');
+                }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(currentCode)
+                    .then(() => showToast('Код скопирован!', 'success'))
+                    .catch(doFallback);
+            } else {
+                doFallback();
+            }
+        }
+
+        function downloadCode(event) {
+            if (event) event.preventDefault();
+            syncCodeFromEditor();
+            if (!currentCode) {
+                showToast('Нет кода для скачивания', 'info');
+                return;
+            }
+            try {
+                const blob = new Blob([currentCode], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ai-builder-${Date.now()}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                showToast('Файл скачан', 'success');
+            } catch (e) {
+                showToast('Ошибка скачивания', 'error');
+            }
+        }
+
+        // ===== API КЛЮЧИ =====
+        function showApiKeyModal() {
+            document.getElementById('openrouterKeyInput').value = localStorage.getItem('openrouter_api_key') || '';
+            document.getElementById('ollamaKeyInput').value = localStorage.getItem('ollama_api_key') || '';
+            document.getElementById('zaiKeyInput').value = localStorage.getItem('zai_api_key') || '';
+            apiKeyModal.classList.add('show');
+            const activeTab = document.querySelector('.provider-tab[data-provider="' + currentProvider + '"]');
+            switchProviderTab(currentProvider, activeTab || document.querySelector('.provider-tab[data-provider="openrouter"]'));
+        }
+
+        function switchProviderTab(provider, btn) {
+            currentProvider = provider;
+            document.querySelectorAll('.provider-tab').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.querySelectorAll('.provider-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(provider + 'Section').classList.add('active');
+            
+            // Обновляем список моделей
+            updateModelList(provider);
+        }
+
+        function updateModelList(provider) {
+            if (provider === 'zai') {
+                modelSelect.innerHTML = `
+                    <option value="glm-4.7-flash">GLM-4.7 Flash (попробовать первым)</option>
+                    <option value="glm-5.3-flash">GLM-5.3 Flash (может требовать баланс)</option>
+                    <option value="glm-5.3">GLM-5.3 (может требовать баланс)</option>
+                    <option value="glm-5.2">GLM-5.2 (проверь доступность)</option>
+                `;
+            } else if (provider === 'ollama') {
+                modelSelect.innerHTML = `
+                    <option value="gemma4:31b">Gemma 4 31B (Ollama Cloud)</option>
+                    <option value="qwen3-coder:480b-cloud">Qwen 3 Coder 480B (Ollama Cloud)</option>
+                    <option value="deepseek-v3.1:671b-cloud">DeepSeek V3.1 671B (Ollama Cloud)</option>
+                    <option value="gpt-oss:120b-cloud">GPT-OSS 120B (Ollama Cloud)</option>
+                    <option value="qwen3:235b-cloud">Qwen 3 235B (Ollama Cloud)</option>
+                `;
+            } else {
+                modelSelect.innerHTML = `
+                    <option value="openrouter/free">Free Router (бесплатно)</option>
+                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                    <option value="openai/gpt-4o">GPT-4o</option>
+                    <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (бесплатно)</option>
+                    <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (бесплатно)</option>
+                    <option value="deepseek/deepseek-chat:free">DeepSeek Chat (бесплатно)</option>
+                    <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (бесплатно)</option>
+                `;
+            }
+        }
+
+ 
+function saveProviderKey(provider) {
+    let key;
+
+    if (provider === 'openrouter') {
+        key = document.getElementById('openrouterKeyInput').value.trim();
+
+        if (!key) {
+            showToast('Введите ключ OpenRouter', 'error');
+            return;
+        }
+
+        localStorage.setItem('openrouter_api_key', key);
+        cachedKeyInfo = null;
+
+    } else if (provider === 'zai') {
+        key = document.getElementById('zaiKeyInput').value.trim();
+
+        if (!key) {
+            showToast('Введите токен Cloudflare Worker', 'error');
+            return;
+        }
+
+        sessionStorage.setItem('zai_proxy_token', key);
+
+    } else {
+        key = document.getElementById('ollamaKeyInput').value.trim();
+
+        if (!key) {
+            showToast('Введите ключ Ollama', 'error');
+            return;
+        }
+
+        localStorage.setItem('ollama_api_key', key);
+    }
+
+    currentProvider = provider;
+    localStorage.setItem('current_provider', provider);
+    updateModelList(provider);
+    apiKeyModal.classList.remove('show');
+
+    showToast(
+        `Ключ ${provider === 'openrouter' ? 'OpenRouter' : provider === 'zai' ? 'Z.ai' : 'Ollama'} сохранён`,
+        'success'
+    );
+}
+        
+function getApiKey(provider) {
+    if (provider === 'ollama') {
+        return (localStorage.getItem('ollama_api_key') || '').trim();
+    }
+
+    if (provider === 'zai') {
+        return (sessionStorage.getItem('zai_proxy_token') || '').trim();
+    }
+
+    return (localStorage.getItem('openrouter_api_key') || '').trim();
+}
+
+
+        apiKeyModal.addEventListener('click', e => { if (e.target === apiKeyModal) apiKeyModal.classList.remove('show'); });
+
+        
+async function testConnection(provider) {
+    const inputId = provider === 'openrouter'
+        ? 'openrouterKeyInput'
+        : provider === 'zai'
+            ? 'zaiKeyInput'
+            : 'ollamaKeyInput';
+
+    const key = document.getElementById(inputId).value.trim();
+
+    if (!key) {
+        showToast(
+            provider === 'zai'
+                ? 'Сначала введите токен Cloudflare Worker'
+                : 'Сначала введите ключ',
+            'error'
+        );
+        return;
+    }
+
+    const btn = document.querySelector(
+        '.provider-section.active .test-btn'
+    );
+
+    if (!btn) return;
+
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Проверяю...';
+    btn.disabled = true;
+
+    try {
+        const url = provider === 'ollama'
+            ? CLOUDFLARE_WORKER_URL
+            : provider === 'zai'
+                ? ZAI_WORKER_URL
+                : OPENROUTER_API_URL;
+
+        const model = provider === 'ollama'
+            ? 'gemma4:31b'
+            : provider === 'zai'
+                ? 'glm-4.7-flash'
+                : 'openrouter/free';
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (provider === 'zai') {
+            headers['X-Proxy-Token'] = key;
+        } else {
+            headers['Authorization'] = `Bearer ${key}`;
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                model,
+                messages: [
+                    { role: 'user', content: 'OK' }
+                ],
+                max_tokens: 10
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const detail =
+                errorData.error?.message ||
+                errorData.message ||
+                response.statusText ||
+                'Нет подробностей';
+
+            throw new Error(`HTTP ${response.status}: ${detail}`);
+        }
+
+        const data = await response.json().catch(() => ({}));
+
+        if (provider === 'zai' && !data.choices?.[0]?.message) {
+            throw new Error(
+                'Worker ответил, но результата модели нет. Проверьте модель и настройки Worker.'
+            );
+        }
+
+        showToast(
+            `${provider === 'ollama' ? 'Ollama' : provider === 'zai' ? 'Z.ai' : 'OpenRouter'} отвечает на запросы!`,
+            'success'
+        );
+
+    } catch (error) {
+        const message = error instanceof TypeError
+            ? 'Не удалось подключиться. Проверьте URL Worker, сеть и настройки CORS.'
+            : error.message;
+
+        showToast(`Ошибка: ${message}`, 'error');
+
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+
+        // ===== ЛИМИТЫ (только для OpenRouter) =====
+        function getTodayKey() {
+            return 'free_requests_' + new Date().toISOString().slice(0, 10);
+        }
+
+        function getFreeRequestsToday() {
+            return parseInt(localStorage.getItem(getTodayKey()) || '0', 10);
+        }
+
+        function incrementFreeRequests() {
+            const key = getTodayKey();
+            const current = getFreeRequestsToday();
+            localStorage.setItem(key, current + 1);
+        }
+
+        async function fetchKeyInfo() {
+            const apiKey = getApiKey('openrouter');
+            if (!apiKey) return null;
+
+            if (cachedKeyInfo && (Date.now() - cachedKeyInfo.timestamp < 60000)) {
+                return cachedKeyInfo.data;
+            }
+
+            try {
+                const response = await fetch(KEY_INFO_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AI Builder Pro'
+                    }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                cachedKeyInfo = { data, timestamp: Date.now() };
+                return data;
+            } catch (e) {
+                console.warn('Failed to fetch key info:', e);
+                return null;
+            }
+        }
+
+        async function fetchCredits() {
+            const apiKey = getApiKey('openrouter');
+            if (!apiKey) return null;
+            try {
+                const response = await fetch(CREDITS_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AI Builder Pro'
+                    }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (e) {
+                console.warn('Failed to fetch credits:', e);
+                return null;
+            }
+        }
+
+        async function showLimitModal() {
+            limitModal.classList.add('show');
+            await refreshLimits();
+        }
+
+        async function refreshLimits() {
+            const freeUsed = getFreeRequestsToday();
+            const freeLabel = document.getElementById('freeUsedLabel');
+            const freeBar = document.getElementById('freeLimitBar');
+            const freeTierLabel = document.getElementById('freeTierLabel');
+            const paidCreditsLabel = document.getElementById('paidCreditsLabel');
+            const paidTierLabel = document.getElementById('paidTierLabel');
+            const resetInfo = document.getElementById('resetInfo');
+
+            freeLabel.textContent = '...';
+            paidCreditsLabel.textContent = '...';
+            resetInfo.textContent = 'Загрузка...';
+
+            const keyInfo = await fetchKeyInfo();
+            let dailyLimit = 50;
+            let isFreeTier = true;
+
+            if (keyInfo && keyInfo.data) {
+                const freeModelInfo = keyInfo.data.free_model_daily_requests;
+                if (freeModelInfo && freeModelInfo.limit) {
+                    dailyLimit = freeModelInfo.limit;
+                }
+                if (keyInfo.data.is_free_tier === false) {
+                    isFreeTier = false;
+                }
+            }
+
+            freeLabel.textContent = `${freeUsed} / ${dailyLimit}`;
+            freeTierLabel.textContent = isFreeTier ? 'Бесплатный тариф (до 10 купленных кредитов)' : 'Расширенный лимит (куплено ≥ 10 кредитов)';
+
+            const percentage = Math.min(100, (freeUsed / dailyLimit) * 100);
+            freeBar.style.width = percentage + '%';
+            freeBar.className = 'limit-bar';
+            if (percentage > 80) freeBar.classList.add('danger');
+            else if (percentage > 50) freeBar.classList.add('warning');
+
+            const creditsData = await fetchCredits();
+            if (creditsData && creditsData.data) {
+                const totalCredits = creditsData.data.total_credits || 0;
+                const totalUsage = creditsData.data.total_usage || 0;
+                const balance = totalCredits - totalUsage;
+                paidCreditsLabel.textContent = `$${balance.toFixed(4)}`;
+                paidTierLabel.textContent = balance > 0 ? 'Доступны платные модели' : 'Платные кредиты не пополнялись';
+            } else {
+                paidCreditsLabel.textContent = 'Нет данных';
+                paidTierLabel.textContent = 'Проверьте API-ключ OpenRouter';
+            }
+
+            const now = new Date();
+            const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+            const timeUntilReset = utcMidnight - now;
+            const hours = Math.floor(timeUntilReset / (1000 * 60 * 60));
+            const minutes = Math.floor((timeUntilReset % (1000 * 60 * 60)) / (1000 * 60));
+
+            resetInfo.innerHTML = `
+                <strong>🕐 Сброс бесплатного лимита OpenRouter:</strong><br>
+                Каждый день в 00:00 UTC<br>
+                До сброса осталось: <strong>${hours} ч ${minutes} мин</strong><br>
+                <span style="font-size: 11px; opacity: 0.8;">(по московскому времени — в 03:00, если UTC+3)</span>
+            `;
+        }
+
+        limitModal.addEventListener('click', e => { if (e.target === limitModal) limitModal.classList.remove('show'); });
+
+        // ===== ХРАНИЛИЩЕ ЧАТОВ =====
+        function loadSavedChats() {
+            try {
+                savedChats = JSON.parse(localStorage.getItem('ai_builder_chats') || '[]');
+                if (!Array.isArray(savedChats)) savedChats = [];
+            } catch { savedChats = []; }
+            renderSidebar();
+        }
+
+        // Подготовка истории к сохранению: не кладём в localStorage base64-файлы
+        // и ограничиваем размер старых переписок, чтобы не переполнять квоту браузера.
+        function makeStorageSafeChat(chat, messageLimit = 10, textLimit = 12000, codeLimit = 60000) {
+            const safeMessages = (Array.isArray(chat.messages) ? chat.messages : []).slice(-messageLimit).map(msg => {
+                let content = msg.content;
+                if (Array.isArray(content)) {
+                    content = content.map(part => {
+                        if (!part || typeof part !== 'object') return { type: 'text', text: String(part ?? '') };
+                        if (part.type === 'text') return { type: 'text', text: String(part.text || '').slice(0, textLimit) };
+                        if (part.type === 'image_url' || part.type === 'image' || part.image_url) {
+                            return { type: 'text', text: '[Изображение было прикреплено; исходные данные изображения не сохраняются в истории]' };
+                        }
+                        return part.text ? { type: 'text', text: String(part.text).slice(0, textLimit) } : { type: 'text', text: '[Вложение]' };
+                    });
+                } else {
+                    content = String(content ?? '').slice(0, textLimit);
+                }
+                return { role: msg.role, content };
+            });
+            return {
+                id: chat.id,
+                title: String(chat.title || 'Без названия').slice(0, 100),
+                messages: safeMessages,
+                code: String(chat.code || '').slice(0, codeLimit),
+                createdAt: chat.createdAt || Date.now(),
+                updatedAt: chat.updatedAt || Date.now()
+            };
+        }
+
+        function persistChatsWithQuotaRecovery() {
+            const attempts = [
+                { chats: 20, messages: 10, text: 12000, code: 60000 },
+                { chats: 12, messages: 8, text: 7000, code: 40000 },
+                { chats: 6, messages: 6, text: 4000, code: 25000 },
+                { chats: 3, messages: 4, text: 2000, code: 12000 },
+                { chats: 1, messages: 4, text: 1500, code: 8000 }
+            ];
+            for (const limits of attempts) {
+                const ordered = [...savedChats].sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0)).slice(-limits.chats);
+                const compact = ordered.map(c => makeStorageSafeChat(c, limits.messages, limits.text, limits.code));
+                try {
+                    localStorage.setItem('ai_builder_chats', JSON.stringify(compact));
+                    savedChats = compact;
+                    return true;
+                } catch (e) {
+                    if (!e || (e.name !== 'QuotaExceededError' && !/quota|storage full/i.test(String(e.message || '')))) throw e;
+                }
+            }
+            return false;
+        }
+
+        function persistSavedChats() {
+            try {
+                const saved = persistChatsWithQuotaRecovery();
+                if (!saved) showToast('Не хватает места в хранилище браузера. Удалите данные старых чатов или вложений.', 'error', 6000);
+            } catch (e) {
+                showToast('Не удалось сохранить историю: ' + (e.message || 'ошибка хранилища'), 'error', 5000);
+            }
+            renderSidebar();
+            if (historyModal.classList.contains('show')) showHistoryModal();
+        }
+
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+        function generateTitle(messages) {
+            const first = messages.find(m => m.role === 'user');
+            if (first) {
+                let text = typeof first.content === 'string' ? first.content : '';
+                if (Array.isArray(first.content)) {
+                    text = first.content.find(c => c.type === 'text')?.text || '';
+                }
+                return text.slice(0, 40).trim() || 'Без названия';
+            }
+            return 'Новый чат';
+        }
+
+        // Автосохранение текущей переписки. Создаёт запись истории при первом
+        // содержательном сообщении и обновляет её далее без дублирования чатов.
+        function autoSaveActiveChat() {
+            if (!Array.isArray(chatHistory) || chatHistory.length === 0) return false;
+            try {
+                let chat = currentChatId ? savedChats.find(c => String(c.id) === String(currentChatId)) : null;
+                if (!chat) {
+                    chat = { id: generateId(), title: generateTitle(chatHistory), messages: [], code: '', createdAt: Date.now(), updatedAt: Date.now() };
+                    savedChats.push(chat);
+                    currentChatId = chat.id;
+                }
+                // В памяти оставляем полную переписку, а для постоянного хранилища
+                // создаём компактную копию: большие изображения и длинные ответы не должны
+                // блокировать переходы между вкладками.
+                chat.messages = chatHistory.map(msg => ({ role: msg.role, content: msg.content }));
+                chat.code = currentCode || '';
+                chat.title = generateTitle(chatHistory);
+                chat.updatedAt = Date.now();
+                // Запоминаем активный проект отдельно от истории сообщений.
+                try {
+                    localStorage.setItem('ai_builder_active_chat_id', String(currentChatId || ''));
+                    if (currentCode) localStorage.setItem('ai_builder_last_code', currentCode);
+                } catch (storageError) {
+                    // Основное сохранение истории ниже также обработает нехватку места.
+                }
+                const saved = persistChatsWithQuotaRecovery();
+                renderSidebar();
+                if (!saved) {
+                    showToast('Автосохранение не удалось: хранилище браузера заполнено. История сокращена, но места всё ещё не хватает.', 'error', 6000);
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                showToast('Не удалось автоматически сохранить чат: ' + (error.message || 'ошибка хранилища'), 'error', 5000);
+                return false;
+            }
+        }
+
+        function saveCurrentChat() {
+            if (chatHistory.length === 0) {
+                showToast('Нет сообщений для сохранения', 'info');
+                return;
+            }
+            let chat;
+            if (currentChatId) {
+                chat = savedChats.find(c => c.id === currentChatId);
+                if (chat) {
+                    chat.messages = [...chatHistory];
+                    chat.code = currentCode;
+                    chat.title = generateTitle(chatHistory);
+                    chat.updatedAt = Date.now();
+                }
+            }
+            if (!chat) {
+                chat = {
+                    id: generateId(),
+                    title: generateTitle(chatHistory),
+                    messages: [...chatHistory],
+                    code: currentCode,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                };
+                savedChats.push(chat);
+                currentChatId = chat.id;
+            }
+            persistSavedChats();
+            showToast('Чат сохранён', 'success');
+        }
+
+        function loadChat(chatId) {
+            const chat = savedChats.find(c => c.id === chatId);
+            if (!chat) return;
+            currentChatId = chatId;
+            try { localStorage.setItem('ai_builder_active_chat_id', String(chatId)); } catch (e) {}
+            chatHistory = [...chat.messages];
+            chatMessages.innerHTML = '';
+            
+            chatHistory.forEach(msg => {
+                if (msg.role === 'user') {
+                    let text = typeof msg.content === 'string' ? msg.content : '';
+                    let attachments = [];
+                    if (Array.isArray(msg.content)) {
+                        msg.content.forEach(part => {
+                            if (part.type === 'text') text = part.text;
+                            if (part.type === 'image_url') attachments.push({ type: 'image', url: part.image_url.url });
+                            if (part.type === 'file_text') attachments.push({ type: 'file', name: part.name });
+                        });
+                    }
+                    const msgEl = addMessage('user', escapeHtml(text));
+                    if (attachments.length > 0) {
+                        const attDiv = document.createElement('div');
+                        attDiv.className = 'message-attachments';
+                        attachments.forEach(att => {
+                            const chip = document.createElement('div');
+                            chip.className = 'attachment-chip';
+                            if (att.type === 'image') {
+                                chip.innerHTML = `<img src="${att.url}" alt=""> <span>Изображение</span>`;
+                            } else {
+                                chip.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span>${escapeHtml(att.name)}</span>`;
+                            }
+                            attDiv.appendChild(chip);
+                        });
+                        msgEl.appendChild(attDiv);
+                    }
+                } else if (msg.role === 'assistant') {
+                    const hasCode = typeof msg.content === 'string' && msg.content.includes('<!DOCTYPE html');
+                    addMessage('ai', hasCode ? '✅ Готово! Код сгенерирован.' : escapeHtml(String(msg.content || '')));
+                }
+            });
+
+            if (chat.code) {
+                currentCode = chat.code;
+                try { localStorage.setItem('ai_builder_last_code', chat.code); } catch (e) {}
+                previewFrame.srcdoc = chat.code;
+                previewFrame.style.display = 'block';
+                previewEmpty.style.display = 'none';
+                codeView.value = chat.code;
+            } else {
+                currentCode = '';
+                previewFrame.srcdoc = '';
+                previewFrame.style.display = 'none';
+                previewEmpty.style.display = 'flex';
+                codeView.value = '';
+            }
+
+            renderSidebar();
+            if (window.innerWidth <= 768) {
+                if (sidebar.classList.contains('mobile-show')) toggleSidebar();
+            }
+            showToast('Чат загружен', 'success');
+        }
+
+        function deleteChat(chatId, event) {
+            // Не даём клику по корзине открыть сам чат.
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const chat = savedChats.find(c => String(c.id) === String(chatId));
+            if (!chat) {
+                showToast('Чат уже отсутствует в истории. Обновляю список.', 'info');
+                loadSavedChats();
+                return;
+            }
+
+            // Используем штатное подтверждение браузера, чтобы исключить сбой
+            // внутреннего модального окна подтверждения.
+            const confirmed = window.confirm('Удалить чат "' + String(chat.title || 'Без названия') + '"?');
+            if (!confirmed) return;
+
+            const deletingCurrentChat = String(currentChatId) === String(chatId);
+
+            // Удаляем из массива и сразу сохраняем в localStorage.
+            savedChats = savedChats.filter(c => String(c.id) !== String(chatId));
+
+            try {
+                localStorage.setItem('ai_builder_chats', JSON.stringify(savedChats));
+            } catch (error) {
+                showToast('Не удалось сохранить удаление: ' + (error.message || 'ошибка хранилища'), 'error', 5000);
+                loadSavedChats();
+                return;
+            }
+
+            if (deletingCurrentChat) {
+                currentChatId = null;
+                newChat(true);
+            }
+
+            renderSidebar();
+            if (historyModal.classList.contains('show')) {
+                showHistoryModal();
+            }
+
+            showToast('Чат удалён', 'success');
+        }
+
+        function newChat(silent = false) {
+            currentChatId = null;
+            chatHistory = [];
+            currentCode = '';
+            chatMessages.innerHTML = '';
+            previewFrame.srcdoc = '';
+            previewFrame.style.display = 'none';
+            previewEmpty.style.display = 'flex';
+            codeView.value = '';
+            pendingAttachments = [];
+            renderAttachmentsPreview();
+            addMessage('ai', '🆕 Новый чат. Опишите приложение или загрузите файлы.');
+            renderSidebar();
+            if (!silent && window.innerWidth <= 768) {
+                if (sidebar.classList.contains('mobile-show')) toggleSidebar();
+            }
+            hidePreview();
+        }
+
+        function renderSidebar() {
+            if (savedChats.length === 0) {
+                sidebarList.innerHTML = `<div class="sidebar-empty"><div class="sidebar-empty-icon">💾</div><div>Сохранённых чатов пока нет</div></div>`;
+                return;
+            }
+            sidebarList.innerHTML = '';
+            const sorted = [...savedChats].sort((a, b) => b.updatedAt - a.updatedAt);
+            sorted.forEach(chat => {
+                const item = document.createElement('div');
+                item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+                item.onclick = () => loadChat(chat.id);
+                const date = new Date(chat.updatedAt);
+                const dateStr = date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' }) + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                item.innerHTML = `
+                    <div class="chat-item-content">
+                        <div class="chat-item-title">${escapeHtml(chat.title)}</div>
+                        <div class="chat-item-meta">
+                            <span>💬 ${Math.floor(chat.messages.length / 2)}</span>
+                            <span>${dateStr}</span>
+                        </div>
+                    </div>
+                    <button class="chat-item-delete" onclick="deleteChat('${chat.id}', event)" title="Удалить">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                `;
+                sidebarList.appendChild(item);
+            });
+        }
+
+        function showHistoryModal() {
+            historyModalList.innerHTML = '';
+            if (savedChats.length === 0) {
+                historyModalList.innerHTML = '<div style="text-align:center; padding:20px; color: var(--text-secondary);">История пуста</div>';
+                document.getElementById('clearAllBtn').style.display = 'none';
+            } else {
+                document.getElementById('clearAllBtn').style.display = 'block';
+                const sorted = [...savedChats].sort((a, b) => b.updatedAt - a.updatedAt);
+                sorted.forEach(chat => {
+                    const date = new Date(chat.updatedAt);
+                    const dateStr = date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                    const item = document.createElement('div');
+                    item.style.cssText = 'padding: 12px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s;';
+                    item.onmouseenter = () => item.style.background = 'var(--bg-tertiary)';
+                    item.onmouseleave = () => item.style.background = 'transparent';
+                    item.innerHTML = `
+                        <div style="flex:1; min-width:0;" onclick="loadChatFromHistory('${chat.id}')">
+                            <div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(chat.title)}</div>
+                            <div style="font-size:11px; color: var(--text-secondary); margin-top:2px;">${dateStr} • 💬 ${Math.floor(chat.messages.length / 2)} сообщений</div>
+                        </div>
+                        <button onclick="deleteChat('${chat.id}', event)" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 6px; border-radius: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    `;
+                    historyModalList.appendChild(item);
+                });
+            }
+            historyModal.classList.add('show');
+        }
+
+        function loadChatFromHistory(id) {
+            historyModal.classList.remove('show');
+            loadChat(id);
+        }
+
+        function clearAllHistory() {
+            showConfirm('Удалить ВСЕ сохранённые чаты? Это действие необратимо.', () => {
+                savedChats = [];
+                currentChatId = null;
+                newChat(true);
+                persistSavedChats();
+                historyModal.classList.remove('show');
+                showToast('Вся история удалена', 'success');
+            });
+        }
+
+        historyModal.addEventListener('click', e => { if (e.target === historyModal) historyModal.classList.remove('show'); });
+
+        // ===== ПОДТВЕРЖДЕНИЕ =====
+        function showConfirm(text, callback) {
+            document.getElementById('confirmText').textContent = text;
+            confirmCallback = callback;
+            document.getElementById('confirmOkBtn').onclick = () => {
+                // Сохраняем callback до закрытия окна: closeConfirm() очищает confirmCallback.
+                const callback = confirmCallback;
+                closeConfirm();
+                if (typeof callback === 'function') callback();
+            };
+            confirmModal.classList.add('show');
+        }
+        function closeConfirm() {
+            confirmModal.classList.remove('show');
+            confirmCallback = null;
+        }
+        confirmModal.addEventListener('click', e => { if (e.target === confirmModal) closeConfirm(); });
+
+        // ===== САЙДБАР =====
+        function toggleSidebar() {
+            sidebar.classList.toggle('mobile-show');
+            sidebarOverlay.classList.toggle('show');
+        }
+
+        // Закрываем историю при повороте устройства или изменении размера окна.
+        // В альбомном режиме iPhone история открывается только кнопкой меню.
+        function closeSidebar() {
+            sidebar.classList.remove('mobile-show');
+            sidebarOverlay.classList.remove('show');
+        }
+        let previousWidth = window.innerWidth;
+        let previousHeight = window.innerHeight;
+        function handleViewportChange() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            if (width !== previousWidth || height !== previousHeight) closeSidebar();
+            previousWidth = width;
+            previousHeight = height;
+        }
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('orientationchange', () => {
+            closeSidebar();
+            setTimeout(handleViewportChange, 100);
+        });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleViewportChange);
+        }
+
+        // ===== ФАЙЛЫ =====
+        fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files), 'file'));
+        imageInput.addEventListener('change', e => handleFiles(Array.from(e.target.files), 'image'));
+
+        async function handleFiles(files, type) {
+            for (const file of files) {
+                if (type === 'image' && file.type.startsWith('image/')) {
+                    if (file.size > 10 * 1024 * 1024) {
+                        showToast(`${file.name} слишком большой (макс. 10 МБ)`, 'error');
+                        continue;
+                    }
+                    const base64 = await fileToBase64(file);
+                    pendingAttachments.push({
+                        type: 'image',
+                        name: file.name,
+                        mime: file.type,
+                        content: base64
+                    });
+                } else if (type === 'file') {
+                    if (file.size > 2 * 1024 * 1024) {
+                        showToast(`${file.name} слишком большой (макс. 2 МБ)`, 'error');
+                        continue;
+                    }
+                    try {
+                        const text = await fileToText(file);
+                        pendingAttachments.push({
+                            type: 'file',
+                            name: file.name,
+                            content: text
+                        });
+                    } catch (e) {
+                        showToast(`Не удалось прочитать ${file.name}`, 'error');
+                    }
+                }
+            }
+            renderAttachmentsPreview();
+            fileInput.value = '';
+            imageInput.value = '';
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function fileToText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function renderAttachmentsPreview() {
+            attachmentsPreview.innerHTML = '';
+            pendingAttachments.forEach((att, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'preview-chip';
+                if (att.type === 'image') {
+                    chip.innerHTML = `
+                        <img src="${att.content}" alt="">
+                        <span class="preview-chip-name">${escapeHtml(att.name)}</span>
+                        <button class="preview-chip-remove" onclick="removeAttachment(${idx})">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    `;
+                } else {
+                    chip.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span class="preview-chip-name">${escapeHtml(att.name)}</span>
+                        <button class="preview-chip-remove" onclick="removeAttachment(${idx})">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    `;
+                }
+                attachmentsPreview.appendChild(chip);
+            });
+        }
+
+        function removeAttachment(idx) {
+            pendingAttachments.splice(idx, 1);
+            renderAttachmentsPreview();
+        }
+
+        // ===== DRAG & DROP =====
+        let dragCounter = 0;
+        window.addEventListener('dragenter', e => {
+            e.preventDefault();
+            dragCounter++;
+            dropZone.classList.add('active');
+        });
+        window.addEventListener('dragleave', e => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dropZone.classList.remove('active');
+                dragCounter = 0;
+            }
+        });
+        window.addEventListener('dragover', e => e.preventDefault());
+        window.addEventListener('drop', async e => {
+            e.preventDefault();
+            dragCounter = 0;
+            dropZone.classList.remove('active');
+            const files = Array.from(e.dataTransfer.files);
+            const imageFiles = files.filter(f => f.type.startsWith('image/'));
+            const textFiles = files.filter(f => !f.type.startsWith('image/'));
+            if (imageFiles.length) await handleFiles(imageFiles, 'image');
+            if (textFiles.length) await handleFiles(textFiles, 'file');
+        });
+
+        // ===== ВВОД =====
+        chatInput.addEventListener('input', () => {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+        });
+        chatInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
+
+        // ===== ОТПРАВКА СООБЩЕНИЯ =====
+        async function sendMessage() {
+            const prompt = chatInput.value.trim();
+            if ((!prompt && pendingAttachments.length === 0) || isGenerating) return;
+            
+            const apiKey = getApiKey(currentProvider);
+            if (!apiKey) {
+                showApiKeyModal();
+                showToast(`Сначала введите ключ ${currentProvider === 'ollama' ? 'Ollama' : currentProvider === 'zai' ? 'Z.ai' : 'OpenRouter'}`, 'info');
+                return;
+            }
+
+            const model = modelSelect.value;
+            const hasImages = pendingAttachments.some(a => a.type === 'image');
+            const hasFiles = pendingAttachments.some(a => a.type === 'file');
+            const isFreeModel = currentProvider === 'openrouter' && (model.includes(':free') || model === 'openrouter/free');
+
+            if (isFreeModel) {
+                const used = getFreeRequestsToday();
+                let limit = 50;
+                if (cachedKeyInfo && cachedKeyInfo.data && cachedKeyInfo.data.free_model_daily_requests) {
+                    limit = cachedKeyInfo.data.free_model_daily_requests.limit || 50;
+                }
+                if (used >= limit) {
+                    showToast(`Дневной лимит бесплатных запросов OpenRouter (${limit}) исчерпан. Сброс в 00:00 UTC.`, 'error', 5000);
+                    return;
+                }
+            }
+
+            let userContent;
+            const attachmentsForDisplay = [];
+
+            if (pendingAttachments.length === 0 && prompt) {
+                userContent = prompt;
+            } else {
+                userContent = [];
+                if (prompt) userContent.push({ type: 'text', text: prompt });
+
+                pendingAttachments.forEach(att => {
+                    if (att.type === 'image') {
+                        userContent.push({
+                            type: 'image_url',
+                            image_url: { url: att.content }
+                        });
+                        attachmentsForDisplay.push({ type: 'image', url: att.content });
+                    } else {
+                        const fileContext = `\n\n=== ФАЙЛ: ${att.name} ===\n\`\`\`\n${att.content.slice(0, 30000)}\n\`\`\`\n=== КОНЕЦ ФАЙЛА ===\n`;
+                        userContent.push({ type: 'text', text: fileContext + `\n[Имя вложенного файла: ${att.name}]\n` });
+                        attachmentsForDisplay.push({ type: 'file', name: att.name });
+                    }
+                });
+            }
+
+            // СОХРАНЯЕМ ДЛЯ ПОВТОРА
+            lastUserPrompt = prompt;
+            lastUserContent = userContent;
+
+            const msgEl = addMessage('user', escapeHtml(prompt || (pendingAttachments.length > 0 ? '(только вложения)' : '')));
+            if (attachmentsForDisplay.length > 0) {
+                const attDiv = document.createElement('div');
+                attDiv.className = 'message-attachments';
+                attachmentsForDisplay.forEach(att => {
+                    const chip = document.createElement('div');
+                    chip.className = 'attachment-chip';
+                    if (att.type === 'image') {
+                        chip.innerHTML = `<img src="${att.url}" alt=""> <span>Изображение</span>`;
+                    } else {
+                        chip.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span>${escapeHtml(att.name)}</span>`;
+                    }
+                    attDiv.appendChild(chip);
+                });
+                msgEl.appendChild(attDiv);
+            }
+
+            chatInput.value = ''; chatInput.style.height = 'auto';
+            pendingAttachments = [];
+            renderAttachmentsPreview();
+            isGenerating = true; sendBtn.disabled = true;
+            const typingMsg = addTypingIndicator();
+
+            try {
+                let systemPrompt;
+                if (hasImages) {
+                    const imageAssets = pendingAttachments.filter(a => a.type === 'image');
+                    const imageAssetInstructions = imageAssets.map((att, index) =>
+                        'ИЗОБРАЖЕНИЕ ' + (index + 1) + ': ' + att.name + '. Маркер для вставки самого файла в итоговый HTML: __AI_BUILDER_IMAGE_' + (index + 1) + '__.'
+                    ).join(' ');
+                    systemPrompt = 'Ты эксперт по веб-разработке и UI/UX. Пользователь приложил изображение. Внимательно определи по его запросу, является ли изображение только визуальным образцом/скриншотом для воспроизведения дизайна или самим фото/ресурсом, который нужно показать на создаваемой странице. Если это скриншот интерфейса и пользователь просит повторить дизайн, НЕ вставляй скриншот целиком как картинку: воссоздай интерфейс HTML/CSS. Если пользователь просит использовать приложенное фото/товар/иллюстрацию на странице, вставляй его в HTML через маркер __AI_BUILDER_IMAGE_1__ (или соответствующий маркер из списка ниже) как значение src у img либо как URL фонового изображения. НЕ используй заглушки вроде «здесь будет изображение», пустые src, example.com, placeholder.com, picsum.photos или случайные внешние картинки. Маркеры будут автоматически заменены приложением на реальные данные прикреплённых изображений. Для нескольких изображений используй соответствующие маркеры. Если пользователь не уточнил, используй разумный выбор по содержимому изображения и его текстовому запросу. Создай полноценное адаптивное HTML-приложение в одном файле, с CSS и JavaScript, интерактивностью и аккуратным современным дизайном. Возвращай ТОЛЬКО полный код от <!DOCTYPE html> до </html>, без сокращений, многоточий, пояснений и markdown-обёрток. ' + imageAssetInstructions;
+                } else if (hasFiles) {
+                    systemPrompt = 'Ты эксперт по веб-разработке. Пользователь предоставил тебе исходные файлы проекта (код, конфигурации). Проанализируй их внимательно, пойми структуру, стиль, используемые технологии. На основе запроса пользователя либо улучши код, либо доработай его, либо создай новое приложение в том же стиле. Возвращай ТОЛЬКО готовый HTML-код от <!DOCTYPE html> до </html>. Никаких пояснений, markdown-блоков или комментариев снаружи.';
+                } else {
+                    systemPrompt = 'Ты эксперт по веб-разработке. Создавай полноценные красивые HTML-приложения с современным дизайном, адаптивной вёрсткой и плавными анимациями. Используй flexbox/grid, CSS-переменные, красивые цветовые схемы. Добавляй интерактивность через JavaScript. Возвращай ТОЛЬКО код от <!DOCTYPE html> до </html>. Никаких пояснений, markdown-блоков или комментариев снаружи.';
+                }
+
+                const messages = [{ role: 'system', content: systemPrompt }];
+                
+                chatHistory.slice(-10).forEach(msg => {
+                    if (msg.role === 'user') {
+                        let text = '';
+                        if (typeof msg.content === 'string') text = msg.content;
+                        else if (Array.isArray(msg.content)) {
+                            msg.content.forEach(p => {
+                                if (p.type === 'text') text += p.text;
+                                else if (p.type === 'file_text') text += `\n[Файл: ${p.name}]`;
+                                else if (p.type === 'image_url') text += '\n[Изображение приложено]';
+                            });
+                        }
+                        messages.push({ role: 'user', content: text });
+                    } else if (msg.role === 'assistant') {
+                        const text = typeof msg.content === 'string' ? msg.content : '';
+                        if (text) messages.push({ role: 'assistant', content: text });
+                    }
+                });
+
+                messages.push({ role: 'user', content: userContent });
+
+                
+const apiUrl = currentProvider === 'ollama'
+    ? CLOUDFLARE_WORKER_URL
+    : currentProvider === 'zai'
+        ? ZAI_WORKER_URL
+        : OPENROUTER_API_URL;
+
+const requestHeaders = {
+    'Content-Type': 'application/json'
+};
+
+if (currentProvider === 'zai') {
+    requestHeaders['X-Proxy-Token'] = apiKey;
+} else {
+    requestHeaders['Authorization'] = `Bearer ${apiKey}`;
+}
+
+if (currentProvider === 'openrouter') {
+    requestHeaders['HTTP-Referer'] = window.location.href;
+    requestHeaders['X-Title'] = 'AI Builder Pro';
+}
+
+const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: requestHeaders,
+    body: JSON.stringify({
+        model: model,
+        messages: messages,
+        temperature: 0.3,
+        max_tokens: 8000
+    })
+});
+
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    const errorMessage = errData.error?.message || response.statusText;
+                    
+                    if (response.status === 429) {
+                        throw new Error(`Лимит запросов исчерпан. ${errorMessage}. Попробуйте позже или смените модель.`);
+                    } else if (response.status === 402) {
+                        throw new Error(`Требуется оплата. ${errorMessage}. Проверьте баланс кредитов.`);
+                    }
+                    
+                    throw new Error(`HTTP ${response.status}: ${errorMessage}`);
+                }
+                
+                const data = await response.json();
+                let rawText = data.choices[0].message.content || '';
+                let rawCode = rawText.trim();
+                
+                // УЛУЧШЕННЫЙ ПАРСЕР КОДА
+                // 1. Убираем markdown-обертки
+                const codeBlockRegex = /```(?:html|javascript|js|css)?\s*([\s\S]*?)```/i;
+                const match = rawCode.match(codeBlockRegex);
+                if (match && match[1]) {
+                    rawCode = match[1].trim();
+                } else {
+                    rawCode = rawCode.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+                }
+
+                // Заменяем маркеры изображений реальными data URL вложений.
+                // Так модель может указать изображение в HTML, не генерируя вручную длинный Base64.
+                if (hasImages) {
+                    const imageAssetsForHtml = attachmentsForDisplay.filter(a => a.type === 'image');
+                    imageAssetsForHtml.forEach((att, index) => {
+                        const markerToken = '__AI_BUILDER_IMAGE_' + (index + 1) + '__';
+                        rawCode = rawCode.split(markerToken).join(att.url);
+                    });
+                }
+
+                // 2. Если модель выдала просто текст (не код) — выбрасываем ошибку с текстом
+                if (!rawCode.includes('<') || (!rawCode.includes('<!DOCTYPE html') && !rawCode.includes('<html') && !rawCode.includes('<body') && !rawCode.includes('<div'))) {
+                    // Показываем, что ответила модель
+                    const errMsgEl = addMessage('ai', `⚠️ Модель вернула не код, а текст:<br><br><div class="message raw-text">${escapeHtml(rawText.slice(0, 500))}</div><br><button class="modal-btn" style="width:auto; padding:8px 16px; margin-top:8px; font-size:13px;" onclick="retryLastPrompt()">🔄 Повторить запрос</button>`, 'raw-text');
+                    typingMsg.remove();
+                    throw new Error('Модель ответила текстом вместо кода.');
+                }
+
+                if (isFreeModel) {
+                    incrementFreeRequests();
+                }
+
+                currentCode = rawCode;
+                chatHistory.push({ role: 'user', content: userContent });
+                chatHistory.push({ role: 'assistant', content: rawCode });
+                if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
+                typingMsg.remove();
+                addMessage('ai', '✅ Готово! Нажмите "Предпросмотр" чтобы увидеть результат.');
+                previewFrame.srcdoc = rawCode;
+                previewFrame.style.display = 'block';
+                previewEmpty.style.display = 'none';
+                codeView.value = rawCode;
+
+                if (window.innerWidth <= 768) {
+                    setTimeout(() => showPreview(), 300);
+                }
+
+                autoSaveActiveChat();
+
+            } catch (error) {
+                typingMsg.remove();
+                addMessage('ai', `❌ Ошибка: ${escapeHtml(error.message)}`, 'error');
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+            }
+        }
+
+        // Функция для повтора последнего запроса
+        function retryLastPrompt() {
+            if (!lastUserContent) {
+                showToast('Нечего повторять', 'info');
+                return;
+            }
+            
+            // Восстанавливаем вложение и текст в поле ввода (или сразу отправляем)
+            if (typeof lastUserContent === 'string') {
+                chatInput.value = lastUserContent;
+            } else {
+                // Если были вложения, мы их потеряли при очистке, но можем отправить текстовую часть
+                const textPart = lastUserContent.find(p => p.type === 'text');
+                if (textPart) chatInput.value = textPart.text;
+                showToast('Вложения не сохранены для повтора. Отправьте текстовый запрос заново.', 'info', 4000);
+            }
+            chatInput.focus();
+            // Автоматически отправляем? Лучше дать пользователю нажать Enter
+        }
+
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        loadSavedChats();
+
+        // Восстанавливаем последний активный проект после перезагрузки Safari.
+        // Не запускаем AI и не создаём новую запись истории автоматически.
+        try {
+            const rememberedChatId = localStorage.getItem('ai_builder_active_chat_id');
+            const rememberedChat = rememberedChatId
+                ? savedChats.find(c => String(c.id) === String(rememberedChatId))
+                : null;
+            if (rememberedChat) {
+                loadChat(rememberedChat.id);
+            } else {
+                const backupCode = localStorage.getItem('ai_builder_last_code');
+                if (backupCode) {
+                    currentCode = backupCode;
+                    previewFrame.srcdoc = backupCode;
+                    codeView.value = backupCode;
+                    previewFrame.style.display = 'block';
+                    previewEmpty.style.display = 'none';
+                }
+            }
+        } catch (restoreError) {
+            console.warn('Не удалось восстановить последний проект:', restoreError);
+        }
+
+        if (window.innerWidth <= 768) {
+            hidePreview();
+        }
+
+        const savedProvider = localStorage.getItem('current_provider') || 'openrouter';
+        currentProvider = ['openrouter', 'ollama', 'zai'].includes(savedProvider) ? savedProvider : 'openrouter';
+        updateModelList(currentProvider);
+        
+        document.querySelectorAll('.provider-tab').forEach(tab => {
+            if (tab.dataset.provider === currentProvider) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+        document.querySelectorAll('.provider-section').forEach(section => {
+            if (section.id === currentProvider + 'Section') {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        });
+
+        [apiKeyModal, limitModal, historyModal, confirmModal].forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) modal.classList.remove('show');
+            });
+        });
+    </script>
+</body>
+</html>
