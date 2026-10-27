@@ -677,6 +677,7 @@
             <div class="provider-tabs">
                 <button class="provider-tab active" data-provider="openrouter" onclick="switchProviderTab('openrouter', this)">OpenRouter</button>
                 <button class="provider-tab" data-provider="ollama" onclick="switchProviderTab('ollama', this)">Ollama Cloud</button>
+                <button class="provider-tab" data-provider="zai" onclick="switchProviderTab('zai', this)">Z.ai</button>
             </div>
 
             <!-- OpenRouter Section -->
@@ -688,6 +689,19 @@
                 <input type="password" class="modal-input" id="openrouterKeyInput" placeholder="Введите ключ (sk-or-...)">
                 <button class="modal-btn" onclick="saveProviderKey('openrouter')">💾 Сохранить OpenRouter</button>
                 <button class="test-btn" onclick="testConnection('openrouter')">🔍 Проверить OpenRouter</button>
+            </div>
+
+            <!-- Z.ai Section -->
+            <div class="provider-section" id="zaiSection">
+                <div class="modal-subtitle">
+                    Официальный API Z.ai (GLM).<br>
+                    Endpoint: <code>https://api.z.ai/api/paas/v4/chat/completions</code><br>
+                    Ключ хранится только в локальном хранилище этого браузера. Использование некоторых моделей может требовать доступного баланса или подходящего тарифа.
+                    <br><a href="https://z.ai/manage-apikey/apikey-list" target="_blank" rel="noopener noreferrer">Управление API-ключами Z.ai</a>
+                </div>
+                <input type="password" class="modal-input" id="zaiKeyInput" placeholder="Вставьте API-ключ Z.ai">
+                <button class="modal-btn" onclick="saveProviderKey('zai')">💾 Сохранить Z.ai</button>
+                <button class="test-btn" onclick="testConnection('zai')">🔍 Проверить Z.ai</button>
             </div>
 
             <!-- Ollama Section -->
@@ -1168,7 +1182,10 @@
         function showApiKeyModal() {
             document.getElementById('openrouterKeyInput').value = localStorage.getItem('openrouter_api_key') || '';
             document.getElementById('ollamaKeyInput').value = localStorage.getItem('ollama_api_key') || '';
+            document.getElementById('zaiKeyInput').value = localStorage.getItem('zai_api_key') || '';
             apiKeyModal.classList.add('show');
+            const activeTab = document.querySelector('.provider-tab[data-provider="' + currentProvider + '"]');
+            switchProviderTab(currentProvider, activeTab || document.querySelector('.provider-tab[data-provider="openrouter"]'));
         }
 
         function switchProviderTab(provider, btn) {
@@ -1183,7 +1200,13 @@
         }
 
         function updateModelList(provider) {
-            if (provider === 'ollama') {
+            if (provider === 'zai') {
+                modelSelect.innerHTML = `
+                    <option value="glm-5.3">GLM-5.3 (Z.ai; может требовать баланс)</option>
+                    <option value="glm-5.3-flash">GLM-5.3 Flash (Z.ai; проверь доступность)</option>
+                    <option value="glm-4.7-flash">GLM-4.7 Flash (Z.ai; проверь доступность)</option>
+                `;
+            } else if (provider === 'ollama') {
                 modelSelect.innerHTML = `
                     <option value="gemma4:31b">Gemma 4 31B (Ollama Cloud)</option>
                     <option value="qwen3-coder:480b-cloud">Qwen 3 Coder 480B (Ollama Cloud)</option>
@@ -1212,41 +1235,48 @@
                 if (!key) { showToast('Введите ключ OpenRouter', 'error'); return; }
                 localStorage.setItem('openrouter_api_key', key);
                 cachedKeyInfo = null;
+            } else if (provider === 'zai') {
+                key = document.getElementById('zaiKeyInput').value.trim();
+                if (!key) { showToast('Введите ключ Z.ai', 'error'); return; }
+                localStorage.setItem('zai_api_key', key);
             } else {
                 key = document.getElementById('ollamaKeyInput').value.trim();
                 if (!key) { showToast('Введите ключ Ollama', 'error'); return; }
                 localStorage.setItem('ollama_api_key', key);
             }
+            currentProvider = provider;
+            localStorage.setItem('current_provider', provider);
+            updateModelList(provider);
             apiKeyModal.classList.remove('show');
-            showToast(`Ключ ${provider === 'openrouter' ? 'OpenRouter' : 'Ollama'} сохранён`, 'success');
+            showToast(`Ключ ${provider === 'openrouter' ? 'OpenRouter' : provider === 'zai' ? 'Z.ai' : 'Ollama'} сохранён`, 'success');
         }
 
         function getApiKey(provider) {
-            if (provider === 'ollama') {
-                return (localStorage.getItem('ollama_api_key') || '').trim();
-            }
+            if (provider === 'ollama') return (localStorage.getItem('ollama_api_key') || '').trim();
+            if (provider === 'zai') return (localStorage.getItem('zai_api_key') || '').trim();
             return (localStorage.getItem('openrouter_api_key') || '').trim();
         }
 
         apiKeyModal.addEventListener('click', e => { if (e.target === apiKeyModal) apiKeyModal.classList.remove('show'); });
 
         async function testConnection(provider) {
-            const key = provider === 'openrouter' 
-                ? document.getElementById('openrouterKeyInput').value.trim()
-                : document.getElementById('ollamaKeyInput').value.trim();
-            
+            const inputId = provider === 'openrouter' ? 'openrouterKeyInput' : provider === 'zai' ? 'zaiKeyInput' : 'ollamaKeyInput';
+            const key = document.getElementById(inputId).value.trim();
             if (!key) { showToast('Сначала введите ключ', 'error'); return; }
-            
-            const btn = event.target;
+
+            const btn = document.querySelector('.provider-section.active .test-btn');
+            if (!btn) return;
             const originalText = btn.textContent;
             btn.textContent = '⏳ Проверяю...'; btn.disabled = true;
-            
+
             try {
-                const url = provider === 'ollama' 
+                const url = provider === 'ollama'
                     ? CLOUDFLARE_WORKER_URL
-                    : OPENROUTER_API_URL;
-                    
-                const model = provider === 'ollama' ? 'gemma4:31b' : 'openrouter/free';
+                    : provider === 'zai'
+                        ? 'https://api.z.ai/api/paas/v4/chat/completions'
+                        : OPENROUTER_API_URL;
+
+                const model = provider === 'ollama' ? 'gemma4:31b' : provider === 'zai' ? 'glm-5.3' : 'openrouter/free';
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -1262,7 +1292,7 @@
                 });
                 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                showToast(`${provider === 'ollama' ? 'Ollama' : 'OpenRouter'} работает отлично!`, 'success');
+                showToast(`${provider === 'ollama' ? 'Ollama' : provider === 'zai' ? 'Z.ai' : 'OpenRouter'} отвечает на запросы!`, 'success');
             } catch (error) {
                 showToast(`Ошибка: ${error.message}`, 'error');
             } finally {
@@ -1904,10 +1934,10 @@
             if ((!prompt && pendingAttachments.length === 0) || isGenerating) return;
             
             const apiKey = getApiKey(currentProvider);
-            if (!apiKey) { 
-                showApiKeyModal(); 
-                showToast(`Сначала введите ключ ${currentProvider === 'ollama' ? 'Ollama' : 'OpenRouter'}`, 'info');
-                return; 
+            if (!apiKey) {
+                showApiKeyModal();
+                showToast(`Сначала введите ключ ${currentProvider === 'ollama' ? 'Ollama' : currentProvider === 'zai' ? 'Z.ai' : 'OpenRouter'}`, 'info');
+                return;
             }
 
             const model = modelSelect.value;
@@ -2014,9 +2044,11 @@
 
                 messages.push({ role: 'user', content: userContent });
 
-                const apiUrl = currentProvider === 'ollama' 
+                const apiUrl = currentProvider === 'ollama'
                     ? CLOUDFLARE_WORKER_URL
-                    : OPENROUTER_API_URL;
+                    : currentProvider === 'zai'
+                        ? 'https://api.z.ai/api/paas/v4/chat/completions'
+                        : OPENROUTER_API_URL;
                 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -2025,12 +2057,17 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${apiKey}`
                     }
-                    : {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`,
-                        'HTTP-Referer': window.location.href,
-                        'X-Title': 'AI Builder Pro'
-                    },
+                    : currentProvider === 'zai'
+                        ? {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        }
+                        : {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`,
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'AI Builder Pro'
+                        },
                     body: JSON.stringify({
                         model: model,
                         messages: messages,
@@ -2143,18 +2180,18 @@
         }
 
         const savedProvider = localStorage.getItem('current_provider') || 'openrouter';
-        currentProvider = savedProvider;
-        updateModelList(savedProvider);
+        currentProvider = ['openrouter', 'ollama', 'zai'].includes(savedProvider) ? savedProvider : 'openrouter';
+        updateModelList(currentProvider);
         
         document.querySelectorAll('.provider-tab').forEach(tab => {
-            if (tab.dataset.provider === savedProvider) {
+            if (tab.dataset.provider === currentProvider) {
                 tab.classList.add('active');
             } else {
                 tab.classList.remove('active');
             }
         });
         document.querySelectorAll('.provider-section').forEach(section => {
-            if (section.id === savedProvider + 'Section') {
+            if (section.id === currentProvider + 'Section') {
                 section.classList.add('active');
             } else {
                 section.classList.remove('active');
