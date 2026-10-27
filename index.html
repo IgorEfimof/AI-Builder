@@ -1248,17 +1248,6 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
             }
         }
 
-        else {
-                key = document.getElementById('ollamaKeyInput').value.trim();
-                if (!key) { showToast('Введите ключ Ollama', 'error'); return; }
-                localStorage.setItem('ollama_api_key', key);
-            }
-            currentProvider = provider;
-            localStorage.setItem('current_provider', provider);
-            updateModelList(provider);
-            apiKeyModal.classList.remove('show');
-            showToast(`Ключ ${provider === 'openrouter' ? 'OpenRouter' : provider === 'zai' ? 'Z.ai' : 'Ollama'} сохранён`, 'success');
-        }
  
 function saveProviderKey(provider) {
     let key;
