@@ -691,18 +691,34 @@
                 <button class="test-btn" onclick="testConnection('openrouter')">🔍 Проверить OpenRouter</button>
             </div>
 
-            <!-- Z.ai Section -->
-            <div class="provider-section" id="zaiSection">
-                <div class="modal-subtitle">
-                    Официальный API Z.ai (GLM).<br>
-                    Endpoint: <code>https://api.z.ai/api/paas/v4/chat/completions</code><br>
-                    Ключ хранится только в локальном хранилище этого браузера. Использование некоторых моделей может требовать доступного баланса или подходящего тарифа.
-                    <br><a href="https://z.ai/manage-apikey/apikey-list" target="_blank" rel="noopener noreferrer">Управление API-ключами Z.ai</a>
-                </div>
-                <input type="password" class="modal-input" id="zaiKeyInput" placeholder="Вставьте API-ключ Z.ai">
-                <button class="modal-btn" onclick="saveProviderKey('zai')">💾 Сохранить Z.ai</button>
-                <button class="test-btn" onclick="testConnection('zai')">🔍 Проверить Z.ai</button>
-            </div>
+            
+<!-- Z.ai Section -->
+<div class="provider-section" id="zaiSection">
+    <div class="modal-subtitle">
+        Подключение Z.ai (GLM) через ваш Cloudflare Worker.<br>
+        API-ключ Z.ai хранится только в секретах Cloudflare.<br>
+        Здесь вводится токен доступа к Worker, а не API-ключ Z.ai.
+        <br>
+        <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener noreferrer">Открыть Cloudflare</a>
+    </div>
+
+    <input
+        type="password"
+        class="modal-input"
+        id="zaiKeyInput"
+        placeholder="Токен доступа к Cloudflare Worker"
+        autocomplete="off"
+    >
+
+    <button class="modal-btn" onclick="saveProviderKey('zai')">
+        💾 Сохранить токен Worker
+    </button>
+
+    <button class="test-btn" onclick="testConnection('zai')">
+        🔍 Проверить подключение Z.ai
+    </button>
+</div>
+
 
             <!-- Ollama Section -->
             <div class="provider-section" id="ollamaSection">
@@ -1237,9 +1253,14 @@
                 localStorage.setItem('openrouter_api_key', key);
                 cachedKeyInfo = null;
             } else if (provider === 'zai') {
-                key = document.getElementById('zaiKeyInput').value.trim();
-                if (!key) { showToast('Введите ключ Z.ai', 'error'); return; }
-                localStorage.setItem('zai_api_key', key);
+    key = document.getElementById('zaiKeyInput').value.trim();
+
+    if (!key) {
+        showToast('Введите токен Cloudflare Worker', 'error');
+        return;
+    }
+
+    sessionStorage.setItem('zai_proxy_token', key);
             } else {
                 key = document.getElementById('ollamaKeyInput').value.trim();
                 if (!key) { showToast('Введите ключ Ollama', 'error'); return; }
