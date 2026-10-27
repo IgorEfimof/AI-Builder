@@ -1202,9 +1202,10 @@
         function updateModelList(provider) {
             if (provider === 'zai') {
                 modelSelect.innerHTML = `
-                    <option value="glm-5.3-flash">GLM-5.3 Flash (Z.ai; проверь тариф)</option>
-                    <option value="glm-5.3">GLM-5.3 (Z.ai; может требовать баланс)</option>
-                    <option value="glm-5.2">GLM-5.2 (Z.ai; проверь доступность)</option>
+                    <option value="glm-4.7-flash">GLM-4.7 Flash (попробовать первым)</option>
+                    <option value="glm-5.3-flash">GLM-5.3 Flash (может требовать баланс)</option>
+                    <option value="glm-5.3">GLM-5.3 (может требовать баланс)</option>
+                    <option value="glm-5.2">GLM-5.2 (проверь доступность)</option>
                 `;
             } else if (provider === 'ollama') {
                 modelSelect.innerHTML = `
@@ -1276,7 +1277,7 @@
                         ? 'https://api.z.ai/api/paas/v4/chat/completions'
                         : OPENROUTER_API_URL;
 
-                const model = provider === 'ollama' ? 'gemma4:31b' : provider === 'zai' ? 'glm-5.3-flash' : 'openrouter/free';
+                const model = provider === 'ollama' ? 'gemma4:31b' : provider === 'zai' ? 'glm-4.7-flash' : 'openrouter/free';
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -1291,10 +1292,30 @@
                     })
                 });
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const detail = errorData.error?.message || errorData.message || response.statusText || 'Нет подробностей';
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error(`HTTP ${response.status}: ключ не принят или нет разрешения. ${detail}`);
+                    }
+                    if (response.status === 402) {
+                        throw new Error(`HTTP 402: вероятно, нужен баланс или доступный пакет. ${detail}`);
+                    }
+                    if (response.status === 404) {
+                        throw new Error(`HTTP 404: модель или адрес API не найдены. ${detail}`);
+                    }
+                    throw new Error(`HTTP ${response.status}: ${detail}`);
+                }
+                const data = await response.json().catch(() => ({}));
+                if (provider === 'zai' && !data.choices?.[0]?.message) {
+                    throw new Error('Ответ получен, но в нём нет результата модели. Проверьте выбранную модель и доступ аккаунта.');
+                }
                 showToast(`${provider === 'ollama' ? 'Ollama' : provider === 'zai' ? 'Z.ai' : 'OpenRouter'} отвечает на запросы!`, 'success');
             } catch (error) {
-                showToast(`Ошибка: ${error.message}`, 'error');
+                const message = error instanceof TypeError
+                    ? 'Браузер не смог подключиться к API. Возможны CORS, сеть или блокировка доступа; это само по себе НЕ доказывает, что ключ неверный.'
+                    : error.message;
+                showToast(`Ошибка: ${message}`, 'error');
             } finally {
                 btn.textContent = originalText; btn.disabled = false;
             }
