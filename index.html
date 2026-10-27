@@ -324,6 +324,22 @@
         }
         .mobile-menu-btn svg { width: 16px; height: 16px; }
 
+        /* На iPhone в альбомной ориентации история всегда выдвижная и скрыта до нажатия меню. */
+        @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+            .sidebar {
+                position: fixed !important;
+                top: 0; left: 0; bottom: 0;
+                height: 100dvh;
+                width: min(85vw, 320px);
+                z-index: 200;
+                transform: translateX(-100%);
+                box-shadow: 4px 0 24px var(--shadow);
+            }
+            .sidebar.mobile-show { transform: translateX(0); }
+            .mobile-menu-btn { display: inline-flex !important; }
+            .sidebar-overlay.show { display: block; }
+        }
+
         /* MODAL */
         .modal {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -1916,17 +1932,29 @@ async function testConnection(provider) {
             sidebarOverlay.classList.toggle('show');
         }
 
-        // При переходе с мобильного режима в планшетный закрываем выдвижную историю.
-        // Иначе класс mobile-show сохраняется и панель снова перекрывает экран.
-        let previousMobileLayout = window.matchMedia('(max-width: 768px)').matches;
-        window.addEventListener('resize', () => {
-            const isMobileLayout = window.matchMedia('(max-width: 768px)').matches;
-            if (previousMobileLayout && !isMobileLayout) {
-                sidebar.classList.remove('mobile-show');
-                sidebarOverlay.classList.remove('show');
-            }
-            previousMobileLayout = isMobileLayout;
+        // Закрываем историю при повороте устройства или изменении размера окна.
+        // В альбомном режиме iPhone история открывается только кнопкой меню.
+        function closeSidebar() {
+            sidebar.classList.remove('mobile-show');
+            sidebarOverlay.classList.remove('show');
+        }
+        let previousWidth = window.innerWidth;
+        let previousHeight = window.innerHeight;
+        function handleViewportChange() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            if (width !== previousWidth || height !== previousHeight) closeSidebar();
+            previousWidth = width;
+            previousHeight = height;
+        }
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('orientationchange', () => {
+            closeSidebar();
+            setTimeout(handleViewportChange, 100);
         });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleViewportChange);
+        }
 
         // ===== ФАЙЛЫ =====
         fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files), 'file'));
