@@ -239,14 +239,14 @@
         .send-btn svg { width: 18px; height: 18px; }
 
         /* CHAT TOOLBAR */
-        .chat-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; min-width: 0; }
-        .chat-toolbar .model-selector { flex: 1 1 auto; min-width: 0; margin: 0; }
+        .chat-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; min-width: 0; overflow-x: auto; scrollbar-width: none; }\n        .chat-toolbar::-webkit-scrollbar { display: none; }
+        .chat-toolbar .model-selector { flex: 1 0 112px; min-width: 112px; margin: 0; }
         .toolbar-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
-        .toolbar-actions .attach-btn { width: 34px; height: 34px; }
+        .toolbar-actions .attach-btn { width: 31px; height: 31px; }
         .toolbar-prompt-btn {
-            min-width: 34px; height: 34px; padding: 0 8px; border-radius: 9px;
+            min-width: 31px; height: 31px; padding: 0 6px; border-radius: 9px;
             border: 1px solid var(--border); background: var(--bg-primary);
-            color: var(--text-secondary); font: 700 14px inherit; cursor: pointer;
+            color: var(--text-secondary); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
             display: inline-flex; align-items: center; justify-content: center; transition: all .2s;
         }
         .toolbar-prompt-btn:hover, .toolbar-prompt-btn.active {
@@ -658,7 +658,7 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             </button>
                             <button class="attach-btn" onclick="saveCurrentChat()" title="Сохранить чат" aria-label="Сохранить чат">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 0-2 2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             </button>
                         </div>
                         <button class="toolbar-prompt-btn" id="usePromptBtn" type="button" title="Включить или выключить готовый промпт" aria-label="Готовый промпт">П</button>
