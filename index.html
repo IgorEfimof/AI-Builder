@@ -91,10 +91,24 @@
         
         /* SIDEBAR */
         .sidebar {
-            width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border);
-            display: flex; flex-direction: column; transition: transform 0.3s ease;
-            z-index: 200;
+            width: 260px; flex: 0 0 260px; background: var(--bg-secondary); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            transition: transform 0.3s ease, width 0.3s ease, flex-basis 0.3s ease, border-color 0.3s ease;
+            z-index: 200; overflow: hidden;
         }
+        @media (min-width: 769px) {
+            .main-container.history-collapsed > .sidebar {
+                width: 0; flex-basis: 0; min-width: 0; border-right-width: 0;
+            }
+        }
+        .history-toggle-btn {
+            width: 34px; height: 34px; flex: 0 0 34px; border: 1px solid var(--border);
+            border-radius: 9px; background: var(--bg-primary); color: var(--text-secondary);
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .history-toggle-btn:hover { background: var(--bg-tertiary); color: var(--accent); border-color: var(--accent); }
+        .history-toggle-btn svg { width: 18px; height: 18px; }
         .sidebar-header {
             padding: 14px 12px; border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
@@ -526,6 +540,9 @@
             <button class="mobile-menu-btn" onclick="toggleSidebar()" title="История">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
+            <button class="history-toggle-btn" id="historyToggleBtn" type="button" title="Показать или скрыть историю" aria-label="Показать или скрыть историю">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
             <div class="logo">
                 <div class="logo-icon">⚡</div>
                 <span>AI Builder Pro</span>
@@ -842,6 +859,9 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
         const imageInput = document.getElementById('imageInput');
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const mainContainer = document.querySelector('.main-container');
+        const chatPanel = document.querySelector('.chat-panel');
+        const historyToggleBtn = document.getElementById('historyToggleBtn');
         const sidebarList = document.getElementById('sidebarList');
         const historyModal = document.getElementById('historyModal');
         const historyModalList = document.getElementById('historyModalList');
@@ -2001,6 +2021,24 @@ async function testConnection(provider) {
             sidebar.classList.toggle('mobile-show');
             sidebarOverlay.classList.toggle('show');
         }
+
+        // На широком экране касание области чата освобождает место,
+        // а кнопка в шапке позволяет вернуть панель истории.
+        function toggleHistoryPanel() {
+            if (window.innerWidth > 768) {
+                mainContainer.classList.toggle('history-collapsed');
+            } else {
+                toggleSidebar();
+            }
+        }
+        historyToggleBtn.addEventListener('click', toggleHistoryPanel);
+        chatPanel.addEventListener('click', () => {
+            if (window.innerWidth > 768) {
+                mainContainer.classList.add('history-collapsed');
+            } else {
+                closeSidebar();
+            }
+        });
 
         // Закрываем историю при повороте устройства или изменении размера окна.
         // В альбомном режиме iPhone история открывается только кнопкой меню.
